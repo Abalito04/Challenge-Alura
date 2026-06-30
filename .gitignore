@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Generated application data
+data/chroma/
+data/turnos_solicitudes.csv
+data/*.tmp
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+

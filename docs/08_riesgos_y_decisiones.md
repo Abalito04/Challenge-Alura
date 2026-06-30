@@ -51,6 +51,15 @@
 | Puerto público sin TLS | media | alta | proxy TLS o demo temporal controlada |
 | API key expuesta en Git, logs o capturas | baja | crítica | `.env` ignorado, Vault, redacción de logs, secret scanning y rotación |
 | Política IAM demasiado amplia | media | alta | dynamic group acotado y permiso de solo lectura al secreto necesario |
+| `PyPDFLoader` permanece en paquete `langchain-community` con aviso de sunset | media | media | integración aislada en `documents.py`; migrar al paquete standalone oficial cuando se estabilice |
+
+## Evidencia técnica de la fase de ingesta
+
+- Versiones instaladas: LangChain 1.3.11, LangGraph 1.2.7, Chroma 1.5.9 e integración `langchain-chroma` 1.1.0.
+- Corpus: 5 archivos, 25 páginas y 50 chunks con `source`, página, SHA-256 e identificador estable.
+- Pruebas: 8 aprobadas sin utilizar API externa.
+- Línea base offline: 10 aciertos sobre 14 consultas documentales en Recall@5 (71,4 %).
+- La línea base offline no mide la calidad de Gemini; usa hashing local únicamente para verificar la mecánica completa.
 | ARM incompatible con dependencia | baja/media | media | validar wheels o elegir x86 |
 | La feature de turnos domina la demo | media | alta | limitar guion y backlog; RAG ocupa la mayor parte |
 

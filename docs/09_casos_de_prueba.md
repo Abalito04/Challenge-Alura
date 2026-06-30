@@ -38,6 +38,15 @@ Separar retrieval, generación, grafo, seguridad, interfaz y despliegue. La mét
 
 Los valores de `k`, umbral y objetivos numéricos se fijarán después de crear el corpus y obtener una línea base.
 
+### Línea base del 30/06/2026
+
+- Configuración: chunks de 900 caracteres, solapamiento 150 y `k=5`.
+- Corpus procesado: 25 páginas y 50 chunks.
+- Embeddings de prueba: hashing determinístico local, sin significado semántico completo.
+- Resultado: 10/14 casos documentales con al menos una fuente esperada en top 5 (Recall@5 = 71,4 %).
+- Casos no recuperados por la línea base local: GOLD-04, GOLD-07, GOLD-14 y GOLD-15.
+- Próximo control: repetir con `gemini-embedding-001`; solo entonces ajustar tamaño, solapamiento, `k` o estrategia de retrieval.
+
 ## Preguntas iniciales de demo
 
 - ¿Cómo puedo pedir o cancelar un turno?

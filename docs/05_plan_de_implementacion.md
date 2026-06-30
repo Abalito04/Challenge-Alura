@@ -26,7 +26,7 @@ Este documento planifica; no autoriza código. Cada fase tiene una puerta de sal
 - `.env.example` sin valores; `.env` local excluido del repositorio.
 - Pruebas mínimas de configuración.
 
-**Salida:** aplicación vacía instalable y comprobable.
+**Salida:** completada el 30/06/2026. Entorno instalable, configuración segura, estructura modular y pruebas automatizadas.
 
 ## Fase 2 — Ingesta y retrieval LangChain
 
@@ -34,7 +34,7 @@ Este documento planifica; no autoriza código. Cada fase tiene una puerta de sal
 - Embeddings e índice versionado.
 - Evaluación de retrieval con preguntas y fuentes esperadas.
 
-**Salida:** recuperación medible antes de agregar generación.
+**Salida parcial verificada:** 25 páginas cargadas, 50 chunks trazables, Chroma persistente y Recall@5 offline de 10/14 (71,4 %). Falta ejecutar la evaluación definitiva con embeddings Gemini.
 
 ## Fase 3 — RAG fundamentado
 

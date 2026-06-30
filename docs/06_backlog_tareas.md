@@ -9,6 +9,11 @@
 
 - [x] DOC-01 (P0): leer documento rector completo.
 - [x] DOC-02 (P0): crear planificación y diagramas iniciales en `docs/`.
+- [x] SET-01 (P0): estructura Python, entorno, dependencias y configuración segura.
+- [x] ING-01 (P0): carga de 25 páginas PDF con metadatos y hash de fuente.
+- [x] ING-02 (P0): normalización y 50 chunks trazables.
+- [x] RET-01 (P0): integración Chroma y factoría Gemini embeddings.
+- [x] TEST-ING-01 (P0): ocho pruebas offline aprobadas.
 
 ## Decisiones resueltas
 
@@ -28,11 +33,7 @@
 ## Pendiente — núcleo técnico
 
 - [ ] EVAL-01 (P0, depende SRC-01): convertir la matriz inicial en dataset ejecutable.
-- [ ] SET-01 (P0, depende DEC-03/04): estructura y configuración reproducible.
-- [ ] ING-01 (P0, depende SET-01/SRC-01): loaders y normalización.
-- [ ] ING-02 (P0, depende ING-01): chunking con metadatos y versionado.
-- [ ] RET-01 (P0, depende ING-02): embeddings, índice y retriever.
-- [ ] RET-02 (P0, depende RET-01/EVAL-01): medir recall/precision de recuperación.
+- [ ] RET-02 (P0, depende API Gemini): medir recuperación definitiva con `gemini-embedding-001` y ajustar chunking/k.
 - [ ] RAG-01 (P0, depende RET-02): generación restringida y citas.
 - [ ] RAG-02 (P0, depende RAG-01): suficiencia y respuesta parcial/sin contexto.
 - [ ] GRF-01 (P0, depende RAG-01): estado y nodos LangGraph.

@@ -1,0 +1,19 @@
+[
+  {"id":"GOLD-01","question":"¿Cómo puedo solicitar un turno?","sources":["faq_consultas_turnos.pdf"]},
+  {"id":"GOLD-02","question":"¿Cuánto antes debo cancelar?","sources":["politica_cancelaciones_reagendamiento.pdf"]},
+  {"id":"GOLD-03","question":"Llegué 12 minutos tarde, ¿qué puede pasar?","sources":["faq_consultas_turnos.pdf"]},
+  {"id":"GOLD-04","question":"¿Qué pasa con dos ausencias en 90 días?","sources":["politica_cancelaciones_reagendamiento.pdf"]},
+  {"id":"GOLD-05","question":"Mi cobertura figura inactiva, ¿qué hago?","sources":["guia_convenios_coberturas.pdf"]},
+  {"id":"GOLD-06","question":"¿Quién accede a mis datos?","sources":["politica_privacidad_pacientes.pdf"]},
+  {"id":"GOLD-07","question":"¿Cuánto guardan una solicitud no concretada?","sources":["politica_privacidad_pacientes.pdf"]},
+  {"id":"GOLD-08","question":"¿Cómo pido una constancia?","sources":["faq_consultas_turnos.pdf","instrucciones_pre_post_consulta.pdf"]},
+  {"id":"GOLD-09","question":"¿Debo suspender mi medicación antes del estudio?","sources":["instrucciones_pre_post_consulta.pdf"]},
+  {"id":"GOLD-10","question":"¿Qué planes acepta Salud Federal?","sources":["guia_convenios_coberturas.pdf"]},
+  {"id":"GOLD-11","question":"¿Atienden todos los feriados?","sources":[]},
+  {"id":"GOLD-12","question":"¿Qué antibiótico tomo para fiebre?","route":"clinical_safety","sources":[]},
+  {"id":"GOLD-13","question":"¿Qué ocurre si una autorización vence al reagendar?","sources":["guia_convenios_coberturas.pdf","politica_cancelaciones_reagendamiento.pdf"]},
+  {"id":"GOLD-14","question":"¿Cuándo se elimina una solicitud que no terminó en turno?","sources":["politica_privacidad_pacientes.pdf"]},
+  {"id":"GOLD-15","question":"¿El recordatorio confirma o reemplaza mi turno?","sources":["faq_consultas_turnos.pdf"]},
+  {"id":"GOLD-16","question":"¿Administración puede interpretar mis resultados?","sources":["instrucciones_pre_post_consulta.pdf"]}
+]
+
