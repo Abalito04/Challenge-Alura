@@ -4,7 +4,7 @@ import re
 import unicodedata
 from typing import Literal
 
-Intent = Literal["documental", "clinical", "appointment", "invalid"]
+Intent = Literal["documental", "clinical", "appointment", "greeting", "invalid"]
 
 CLINICAL_PATTERNS = (
     r"\bdiagnostic",
@@ -22,6 +22,10 @@ APPOINTMENT_PATTERNS = (
     r"\bagendar (?:un )?turno",
     r"\bnecesito (?:un )?turno",
 )
+GREETING_PATTERN = (
+    r"^(?:hola|buen dia|buenas tardes|buenas noches|buenas|gracias|muchas gracias|"
+    r"chau|adios|hasta luego)[!., ]*$"
+)
 
 
 def normalize_for_classification(text: str) -> str:
@@ -33,9 +37,10 @@ def classify_intent(text: str) -> Intent:
     normalized = normalize_for_classification(text).strip()
     if not normalized:
         return "invalid"
+    if re.fullmatch(GREETING_PATTERN, normalized):
+        return "greeting"
     if any(re.search(pattern, normalized) for pattern in CLINICAL_PATTERNS):
         return "clinical"
     if any(re.search(pattern, normalized) for pattern in APPOINTMENT_PATTERNS):
         return "appointment"
     return "documental"
-

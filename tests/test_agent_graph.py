@@ -31,6 +31,9 @@ def test_intent_classifier_keeps_admin_questions_documental() -> None:
     assert classify_intent("¿Cómo cancelo un turno?") == "documental"
     assert classify_intent("¿Qué medicamento tomo?") == "clinical"
     assert classify_intent("Quiero solicitar un turno") == "appointment"
+    assert classify_intent("Hola") == "greeting"
+    assert classify_intent("Muchas gracias!") == "greeting"
+    assert classify_intent("Hola, ¿qué cardiólogos atienden?") == "documental"
 
 
 def test_graph_generates_grounded_answer_with_citation() -> None:
@@ -48,3 +51,11 @@ def test_graph_rejects_clinical_question_without_sources() -> None:
 def test_graph_abstains_without_context() -> None:
     result = graph().invoke({"question": "¿Atienden todos los feriados?"})
     assert "información suficiente" in result["answer"]
+
+
+def test_graph_answers_greeting_without_retrieval_or_model() -> None:
+    result = graph().invoke({"question": "Hola"})
+    assert "¡Hola!" in result["answer"]
+    assert "¿Qué necesitás consultar?" in result["answer"]
+    assert result["citations"] == ()
+    assert result.get("documents") is None

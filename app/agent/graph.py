@@ -31,11 +31,14 @@ def build_agent_graph(
     def classify_node(state: AgentState) -> AgentState:
         return {"intent": classify_intent(state.get("question", ""))}
 
-    def route_intent(state: AgentState) -> Literal["retrieve", "clinical", "appointment", "invalid"]:
+    def route_intent(
+        state: AgentState,
+    ) -> Literal["retrieve", "clinical", "appointment", "greeting", "invalid"]:
         mapping = {
             "documental": "retrieve",
             "clinical": "clinical",
             "appointment": "appointment",
+            "greeting": "greeting",
             "invalid": "invalid",
         }
         return mapping[state["intent"]]
@@ -89,6 +92,16 @@ def build_agent_graph(
             "citations": (),
         }
 
+    def greeting_node(_: AgentState) -> AgentState:
+        return {
+            "answer": (
+                "¡Hola! Soy Medinova AI Agent. Puedo ayudarte con información institucional, "
+                "especialistas, sedes, horarios, coberturas y políticas disponibles en los "
+                "documentos de la clínica. ¿Qué necesitás consultar?"
+            ),
+            "citations": (),
+        }
+
     def invalid_node(_: AgentState) -> AgentState:
         return {"answer": "Ingresá una consulta válida para poder ayudarte.", "citations": ()}
 
@@ -104,11 +117,19 @@ def build_agent_graph(
     builder.add_node("generate", generate_node)
     builder.add_node("clinical", clinical_node)
     builder.add_node("appointment", appointment_node)
+    builder.add_node("greeting", greeting_node)
     builder.add_node("invalid", invalid_node)
     builder.add_node("insufficient", insufficient_node)
     builder.add_edge(START, "classify")
     builder.add_conditional_edges("classify", route_intent)
     builder.add_conditional_edges("retrieve", route_evidence)
-    for terminal in ("generate", "clinical", "appointment", "invalid", "insufficient"):
+    for terminal in (
+        "generate",
+        "clinical",
+        "appointment",
+        "greeting",
+        "invalid",
+        "insufficient",
+    ):
         builder.add_edge(terminal, END)
     return builder.compile()

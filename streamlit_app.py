@@ -89,6 +89,8 @@ def trace_for(result: dict) -> list[str]:
         steps.append("Aplicar guardrail clínico")
     elif intent == "appointment":
         steps.append("Derivar a solicitudes")
+    elif intent == "greeting":
+        steps.append("Responder conversación breve")
     else:
         steps.append("Validar entrada")
     return steps
@@ -150,8 +152,11 @@ def render_assistant() -> None:
             with st.spinner("LangGraph está consultando el corpus..."):
                 try:
                     result = graph.invoke({"question": prompt})
-                except Exception as exc:
-                    st.error(f"No se pudo completar la consulta: {exc}")
+                except Exception:
+                    st.error(
+                        "El proveedor de IA no pudo completar la consulta. "
+                        "Reintentá en unos segundos o revisá la cuota configurada."
+                    )
                     return
             st.session_state.last_result = result
             st.session_state.messages.append(
