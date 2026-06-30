@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+import re
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -16,10 +17,13 @@ class Settings(BaseSettings):
 
     llm_provider: str = "gemini"
     llm_model: str = "gemini-3.5-flash"
+    llm_fallback_provider: str | None = "gemini"
     llm_fallback_model: str = "gemini-2.5-flash"
     embeddings_provider: str = "gemini"
     embeddings_model: str = "gemini-embedding-001"
     gemini_api_key: str | None = Field(default=None, repr=False)
+    openai_api_key: str | None = Field(default=None, repr=False)
+    cohere_api_key: str | None = Field(default=None, repr=False)
 
     source_documents_dir: Path = Path("source_documents")
     chroma_persist_dir: Path = Path("data/chroma")
@@ -46,10 +50,41 @@ class Settings(BaseSettings):
     def validate_rag_configuration(self) -> None:
         if self.chunk_overlap >= self.chunk_size:
             raise ValueError("CHUNK_OVERLAP must be smaller than CHUNK_SIZE")
-        if self.embeddings_provider != "gemini":
-            raise ValueError(f"Unsupported embeddings provider: {self.embeddings_provider}")
+        supported = {"gemini", "openai", "cohere"}
+        for field_name, provider in (
+            ("LLM_PROVIDER", self.llm_provider),
+            ("EMBEDDINGS_PROVIDER", self.embeddings_provider),
+        ):
+            if provider.lower() not in supported:
+                raise ValueError(f"Unsupported {field_name}: {provider}")
+        if self.llm_fallback_provider and self.llm_fallback_provider.lower() not in supported:
+            raise ValueError(
+                f"Unsupported LLM_FALLBACK_PROVIDER: {self.llm_fallback_provider}"
+            )
         if not 0.0 <= self.retrieval_score_threshold <= 1.0:
             raise ValueError("RETRIEVAL_SCORE_THRESHOLD must be between 0 and 1")
+
+    def api_key_for(self, provider: str) -> str | None:
+        keys = {
+            "gemini": self.gemini_api_key,
+            "openai": self.openai_api_key,
+            "cohere": self.cohere_api_key,
+        }
+        try:
+            return keys[provider.lower()]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported provider: {provider}") from exc
+
+    @property
+    def vector_collection_name(self) -> str:
+        if (
+            self.embeddings_provider.lower() == "gemini"
+            and self.embeddings_model.lower() == "gemini-embedding-001"
+        ):
+            return self.chroma_collection
+        identity = f"{self.embeddings_provider}_{self.embeddings_model}".lower()
+        slug = re.sub(r"[^a-z0-9]+", "_", identity).strip("_")
+        return f"{self.chroma_collection}_{slug}"
 
 
 @lru_cache

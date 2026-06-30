@@ -1,5 +1,15 @@
 # Riesgos y registro de decisiones
 
+## ADR: abstracción de Gemini, OpenAI y Cohere
+
+- Estado: aceptada.
+- Decisión: conservar un único pipeline LangChain/LangGraph e instanciar chat y embeddings mediante fábricas configurables.
+- Motivo: demostrar portabilidad y permitir comparar proveedores sin duplicar la lógica RAG.
+- Seguridad: las claves viven en `.env` local ignorado o, en OCI, en Vault; `.env.example` solo contiene marcadores.
+- Integridad del índice: cada combinación proveedor/modelo tiene su propia colección Chroma y requiere ingesta independiente.
+- Costo: las pruebas automáticas no invocan APIs; las evaluaciones reales se ejecutan explícitamente.
+- Pendiente: definir qué claves se cargarán finalmente en OCI y medir calidad, latencia y costo antes de elegir el proveedor productivo.
+
 ## Decisiones confirmadas
 
 | ID | Decisión | Motivo |

@@ -5,13 +5,14 @@ Asistente administrativo ficticio para demostrar RAG, LangChain, LangGraph y des
 ## Estado actual
 
 - Planificación y diagramas completos en [`docs/`](docs/).
-- Cinco documentos PDF ficticios en [`source_documents/`](source_documents/).
-- Pipeline de ingesta, chunking e indexación Chroma implementado y probado offline.
-- Interfaz, generación RAG, flujo LangGraph, turnos y deploy todavía no implementados.
+- Seis documentos PDF ficticios y 30 páginas en [`source_documents/`](source_documents/).
+- Pipeline RAG, citas, guardrails y flujo LangGraph implementados.
+- Gemini, OpenAI y Cohere disponibles por configuración; Gemini sigue activo por defecto.
+- Interfaz Streamlit, turnos y deploy OCI continúan como etapas posteriores.
 
 ## Seguridad
 
-No agregues claves al repositorio. Copiá `.env.example` como `.env` y completá la clave únicamente en tu entorno local. Para OCI se utilizará Vault/Secret Management.
+No agregues claves al repositorio. Copiá `.env.example` como `.env` y completá únicamente las claves de los proveedores que vayas a usar. Para OCI se utilizará Vault/Secret Management.
 
 ## Ejecución de esta fase
 
@@ -22,4 +23,4 @@ python -m scripts.evaluate_retrieval
 pytest
 ```
 
-La ingesta real con Gemini requiere `GEMINI_API_KEY`. Las pruebas usan embeddings determinísticos locales y no consumen APIs. La línea base offline actual carga 25 páginas, produce 50 chunks y obtiene 10/14 aciertos de fuente en Recall@5; la evaluación definitiva se realizará con `gemini-embedding-001`.
+La ingesta real requiere la clave del proveedor configurado. Las pruebas usan embeddings determinísticos locales y no consumen APIs. Cada proveedor/modelo de embeddings usa una colección Chroma independiente, por lo que al cambiarlo hay que ejecutar nuevamente `python -m scripts.ingest`.

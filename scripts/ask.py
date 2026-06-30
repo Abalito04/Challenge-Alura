@@ -2,8 +2,8 @@ import argparse
 
 from app.agent.graph import build_agent_graph
 from app.config import get_settings
-from app.llm_provider import create_gemini_chat_model
-from app.rag.embeddings import create_gemini_embeddings
+from app.llm_provider import create_chat_model
+from app.rag.embeddings import create_embeddings
 from app.rag.vectorstore import open_vectorstore
 
 
@@ -13,18 +13,27 @@ def main() -> None:
     args = parser.parse_args()
 
     settings = get_settings()
-    embeddings = create_gemini_embeddings(
-        model=settings.embeddings_model, api_key=settings.gemini_api_key
+    embeddings = create_embeddings(
+        provider=settings.embeddings_provider,
+        model=settings.embeddings_model,
+        api_key=settings.api_key_for(settings.embeddings_provider),
     )
     store = open_vectorstore(
         embeddings=embeddings,
         persist_dir=settings.chroma_persist_dir,
-        collection_name=settings.chroma_collection,
+        collection_name=settings.vector_collection_name,
     )
-    llm = create_gemini_chat_model(
+    llm = create_chat_model(
+        provider=settings.llm_provider,
         model=settings.llm_model,
+        api_key=settings.api_key_for(settings.llm_provider),
+        fallback_provider=settings.llm_fallback_provider,
         fallback_model=settings.llm_fallback_model,
-        api_key=settings.gemini_api_key,
+        fallback_api_key=(
+            settings.api_key_for(settings.llm_fallback_provider)
+            if settings.llm_fallback_provider
+            else None
+        ),
     )
     graph = build_agent_graph(
         vectorstore=store,

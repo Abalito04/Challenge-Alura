@@ -12,9 +12,25 @@ def test_rejects_overlap_equal_to_chunk_size() -> None:
 
 
 def test_secret_is_not_required_for_offline_configuration() -> None:
-    settings = Settings(gemini_api_key=None)
+    settings = Settings(
+        gemini_api_key=None,
+        openai_api_key="openai-test-secret",
+        cohere_api_key="cohere-test-secret",
+    )
     assert settings.gemini_api_key is None
-    assert "api_key" not in repr(settings).lower()
+    representation = repr(settings)
+    assert "openai-test-secret" not in representation
+    assert "cohere-test-secret" not in representation
+
+
+def test_provider_keys_and_vector_collections_are_resolved_independently() -> None:
+    settings = Settings(
+        embeddings_provider="cohere",
+        embeddings_model="embed-v4.0",
+        cohere_api_key="cohere-test-secret",
+    )
+    assert settings.api_key_for("cohere") == "cohere-test-secret"
+    assert settings.vector_collection_name.endswith("cohere_embed_v4_0")
 
 
 def test_gemini_embeddings_factory_matches_installed_integration() -> None:

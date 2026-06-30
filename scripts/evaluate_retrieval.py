@@ -3,7 +3,7 @@ import argparse
 from pathlib import Path
 
 from app.config import get_settings
-from app.rag.embeddings import create_gemini_embeddings
+from app.rag.embeddings import create_embeddings
 from app.rag.evaluation import evaluate_source_recall
 from app.rag.vectorstore import open_vectorstore
 
@@ -14,14 +14,15 @@ def main() -> None:
     args = parser.parse_args()
     settings = get_settings()
     retrieval_k = args.k or settings.retrieval_k
-    embeddings = create_gemini_embeddings(
+    embeddings = create_embeddings(
+        provider=settings.embeddings_provider,
         model=settings.embeddings_model,
-        api_key=settings.gemini_api_key,
+        api_key=settings.api_key_for(settings.embeddings_provider),
     )
     store = open_vectorstore(
         embeddings=embeddings,
         persist_dir=settings.chroma_persist_dir,
-        collection_name=settings.chroma_collection,
+        collection_name=settings.vector_collection_name,
     )
     cases = json.loads(
         Path("tests/data/golden_questions.json").read_text(encoding="utf-8")

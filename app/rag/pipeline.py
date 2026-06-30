@@ -7,7 +7,7 @@ from langchain_core.embeddings import Embeddings
 from app.config import Settings
 from app.rag.chunking import split_documents
 from app.rag.documents import load_pdf_corpus
-from app.rag.embeddings import create_gemini_embeddings
+from app.rag.embeddings import create_embeddings
 from app.rag.vectorstore import index_documents, open_vectorstore
 
 
@@ -27,20 +27,20 @@ def ingest_corpus(settings: Settings, *, embeddings: Embeddings | None = None) -
         chunk_size=settings.chunk_size,
         chunk_overlap=settings.chunk_overlap,
     )
-    embedding_model = embeddings or create_gemini_embeddings(
+    embedding_model = embeddings or create_embeddings(
+        provider=settings.embeddings_provider,
         model=settings.embeddings_model,
-        api_key=settings.gemini_api_key,
+        api_key=settings.api_key_for(settings.embeddings_provider),
     )
     store = open_vectorstore(
         embeddings=embedding_model,
         persist_dir=settings.chroma_persist_dir,
-        collection_name=settings.chroma_collection,
+        collection_name=settings.vector_collection_name,
     )
     indexed = index_documents(store, chunks)
     return IngestionResult(
         files=len({page.metadata["source"] for page in pages}),
         pages=len(pages),
         chunks=indexed,
-        collection_name=settings.chroma_collection,
+        collection_name=settings.vector_collection_name,
     )
-

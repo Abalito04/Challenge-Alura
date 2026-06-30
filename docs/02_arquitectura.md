@@ -64,7 +64,7 @@ flowchart TB
 - Interfaz: **Streamlit** es la recomendación para el MVP porque toda la aplicación se mantiene en Python y permite chat, carga futura de PDF, formularios y panel multipágina sin un frontend separado. Flask queda como alternativa si después se requiere una API o mayor control web.
 - Corpus: **PDF predefinido** como fuente confirmada. La interfaz reservará un control visible para agregar/reemplazar PDF en una evolución futura, pero la carga dinámica no forma parte del primer MVP hasta definir validación, reindexado y permisos.
 - Vector store: FAISS/Chroma local para MVP o OCI Database 23ai para mayor integración OCI. Recomendación provisional: vector store local persistente para limitar costo y complejidad.
-- Modelo: Gemini confirmado. Recomendación actual: `gemini-3.5-flash` estable para chat y `gemini-2.5-flash` como fallback configurable. El modelo de embeddings se decidirá y verificará por separado.
+- Modelos: Gemini permanece como configuración predeterminada. La capa de proveedores también admite OpenAI y Cohere para chat y embeddings sin modificar el grafo. Los modelos se seleccionan mediante variables de entorno.
 - Despliegue: OCI Compute con contenedor o proceso administrado; Container Instances es alternativa. La elección está pendiente.
 
 ## Estructura futura sugerida (no creada)
@@ -85,6 +85,12 @@ docs/                   # decisiones y evidencia
 
 ## Límites de confianza
 
-Las claves nunca se hardcodean ni se guardan en Git. En desarrollo local, `.env` permanece ignorado y solo `.env.example` documenta nombres sin valores. En OCI, la opción objetivo es guardar `GEMINI_API_KEY` en OCI Vault/Secret Management y permitir que la instancia la recupere mediante un instance principal, dynamic group y política IAM de mínimo privilegio. El secreto se mantiene solo en memoria o se inyecta al proceso; no se imprime en logs.
+Las claves nunca se hardcodean ni se guardan en Git. En desarrollo local, `.env` permanece ignorado y solo `.env.example` documenta `GEMINI_API_KEY`, `OPENAI_API_KEY` y `COHERE_API_KEY` con valores ficticios. En OCI, la opción objetivo es guardar las claves utilizadas en OCI Vault/Secret Management y permitir que la instancia las recupere mediante un instance principal, dynamic group y política IAM de mínimo privilegio. El secreto se mantiene solo en memoria o se inyecta al proceso; no se imprime en logs.
+
+## Selección de proveedor
+
+`LLM_PROVIDER` y `EMBEDDINGS_PROVIDER` se configuran de forma independiente. Esto permite, por ejemplo, usar Cohere para chat y Gemini para embeddings. `LLM_FALLBACK_PROVIDER` puede apuntar a otro proveedor, siempre que su clave esté disponible.
+
+La colección vectorial incorpora proveedor y modelo en su nombre para las alternativas; la combinación Gemini original conserva el nombre base por compatibilidad. Cambiar `EMBEDDINGS_PROVIDER` o `EMBEDDINGS_MODEL` exige reindexar el corpus; nunca se mezclan vectores de espacios semánticos incompatibles.
 
 El proveedor externo recibe solo contenido ficticio. OCI expone únicamente el puerto de la aplicación; la administración se realiza por un canal seguro. Los logs no deben registrar preguntas, datos personales completos, cabeceras de autorización ni valores de configuración secretos.
