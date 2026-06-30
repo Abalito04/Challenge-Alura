@@ -23,4 +23,14 @@ python -m scripts.evaluate_retrieval
 pytest
 ```
 
+## Interfaz Streamlit
+
+Con el entorno virtual activo y el índice creado:
+
+```powershell
+python -m streamlit run streamlit_app.py
+```
+
+La interfaz incluye el asistente RAG con citas y trazabilidad LangGraph, el inventario PDF y una demostración secundaria de solicitudes pendientes persistidas en CSV. Usá únicamente datos ficticios.
+
 La ingesta real requiere la clave del proveedor configurado. Las pruebas usan embeddings determinísticos locales y no consumen APIs. Cada proveedor/modelo de embeddings usa una colección Chroma independiente, por lo que al cambiarlo hay que ejecutar nuevamente `python -m scripts.ingest`.
