@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 import re
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +13,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
     )
 
     llm_provider: str = "gemini"
@@ -21,7 +22,11 @@ class Settings(BaseSettings):
     llm_fallback_model: str = "gemini-2.5-flash"
     embeddings_provider: str = "gemini"
     embeddings_model: str = "gemini-embedding-001"
-    gemini_api_key: str | None = Field(default=None, repr=False)
+    gemini_api_key: str | None = Field(
+        default=None,
+        repr=False,
+        validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+    )
     openai_api_key: str | None = Field(default=None, repr=False)
     cohere_api_key: str | None = Field(default=None, repr=False)
 

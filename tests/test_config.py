@@ -33,6 +33,13 @@ def test_provider_keys_and_vector_collections_are_resolved_independently() -> No
     assert settings.vector_collection_name.endswith("cohere_embed_v4_0")
 
 
+def test_google_api_key_is_accepted_as_gemini_alias(monkeypatch) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("GOOGLE_API_KEY", "google-alias-test-secret")
+    settings = Settings(_env_file=None)
+    assert settings.api_key_for("gemini") == "google-alias-test-secret"
+
+
 def test_gemini_embeddings_factory_matches_installed_integration() -> None:
     embeddings = create_gemini_embeddings(
         model="gemini-embedding-001",
