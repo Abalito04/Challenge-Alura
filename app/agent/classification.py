@@ -21,6 +21,8 @@ APPOINTMENT_PATTERNS = (
     r"\bsolicitar (?:un )?turno",
     r"\bagendar (?:un )?turno",
     r"\bnecesito (?:un )?turno",
+    r"\b(?:gestionar|gestiono|gestionamos|pedir|sacar|reservar) (?:un )?turno",
+    r"\b(?:podemos|puedo|como puedo) (?:gestionar|pedir|sacar|reservar|agendar) (?:un )?turno",
 )
 GREETING_PATTERN = (
     r"^(?:hola|buen dia|buenas tardes|buenas noches|buenas|gracias|muchas gracias|"
@@ -33,8 +35,9 @@ def normalize_for_classification(text: str) -> str:
     return "".join(char for char in normalized if not unicodedata.combining(char))
 
 
-def classify_intent(text: str) -> Intent:
+def classify_intent(text: str, *, history_text: str = "") -> Intent:
     normalized = normalize_for_classification(text).strip()
+    normalized_history = normalize_for_classification(history_text)
     if not normalized:
         return "invalid"
     if re.fullmatch(GREETING_PATTERN, normalized):
@@ -43,4 +46,12 @@ def classify_intent(text: str) -> Intent:
         return "clinical"
     if any(re.search(pattern, normalized) for pattern in APPOINTMENT_PATTERNS):
         return "appointment"
+    if re.search(r"\bturno\b", normalized) and re.search(
+        r"\b(?:quiero|quisiera|gustaria|gestion|pedir|sacar|reservar|agendar|con)\b",
+        normalized,
+    ):
+        return "appointment"
+    if re.fullmatch(r"(?:si|dale|bueno|perfecto|hagamoslo|quiero)[!., ]*", normalized):
+        if "turno" in normalized_history or "solicitud" in normalized_history:
+            return "appointment"
     return "documental"

@@ -20,7 +20,11 @@ adjunta de forma verificable después de tu respuesta."""
 PROMPT = ChatPromptTemplate.from_messages(
     [
         ("system", SYSTEM_PROMPT),
-        ("human", "Pregunta:\n{question}\n\nContexto institucional:\n{context}"),
+        (
+            "human",
+            "Conversación reciente:\n{conversation}\n\nPregunta actual:\n{question}"
+            "\n\nContexto institucional:\n{context}",
+        ),
     ]
 )
 
@@ -65,6 +69,7 @@ def generate_grounded_answer(
     *,
     question: str,
     documents: tuple[Document, ...],
+    conversation: tuple[dict[str, str], ...] = (),
 ) -> GroundedAnswer:
     if not documents:
         return GroundedAnswer(
@@ -72,5 +77,15 @@ def generate_grounded_answer(
             (),
         )
     chain = PROMPT | llm | StrOutputParser()
-    text = chain.invoke({"question": question, "context": _format_context(documents)})
+    conversation_text = "\n".join(
+        f"{item.get('role', 'usuario')}: {item.get('content', '')}"
+        for item in conversation[-6:]
+    ) or "Sin conversación previa."
+    text = chain.invoke(
+        {
+            "question": question,
+            "context": _format_context(documents),
+            "conversation": conversation_text,
+        }
+    )
     return GroundedAnswer(text=text.strip(), citations=_citations(documents))

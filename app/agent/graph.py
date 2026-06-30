@@ -13,6 +13,8 @@ from app.rag.retrieval import retrieve_context
 
 class AgentState(TypedDict, total=False):
     question: str
+    conversation: tuple[dict[str, str], ...]
+    retrieval_question: str
     intent: Intent
     documents: tuple[Document, ...]
     scores: tuple[float, ...]
@@ -28,8 +30,40 @@ def build_agent_graph(
     retrieval_k: int = 5,
     score_threshold: float = 0.25,
 ):
+    def history_text(state: AgentState) -> str:
+        return "\n".join(
+            item.get("content", "") for item in state.get("conversation", ())[-6:]
+        )
+
+    def contextualize_node(state: AgentState) -> AgentState:
+        question = state.get("question", "").strip()
+        previous_user_questions = [
+            item.get("content", "").strip()
+            for item in state.get("conversation", ())
+            if item.get("role") == "user" and item.get("content", "").strip()
+        ]
+        follow_up = bool(
+            previous_user_questions
+            and (
+                len(question.split()) <= 12
+                or question.casefold().startswith(
+                    ("y ", "también", "además", "qué ", "cuándo", "dónde", "cuál", "cómo")
+                )
+            )
+        )
+        if follow_up:
+            question = (
+                f"Consulta anterior: {previous_user_questions[-1]}\n"
+                f"Pregunta de seguimiento: {question}"
+            )
+        return {"retrieval_question": question}
+
     def classify_node(state: AgentState) -> AgentState:
-        return {"intent": classify_intent(state.get("question", ""))}
+        return {
+            "intent": classify_intent(
+                state.get("question", ""), history_text=history_text(state)
+            )
+        }
 
     def route_intent(
         state: AgentState,
@@ -46,7 +80,7 @@ def build_agent_graph(
     def retrieve_node(state: AgentState) -> AgentState:
         result = retrieve_context(
             vectorstore,
-            state["question"],
+            state.get("retrieval_question", state["question"]),
             k=retrieval_k,
             score_threshold=score_threshold,
         )
@@ -64,6 +98,7 @@ def build_agent_graph(
             llm,
             question=state["question"],
             documents=state["documents"],
+            conversation=state.get("conversation", ()),
         )
         return {
             "answer": result.text,
@@ -86,8 +121,9 @@ def build_agent_graph(
     def appointment_node(_: AgentState) -> AgentState:
         return {
             "answer": (
-                "Puedo ayudarte a registrar una solicitud de turno pendiente. El formulario y "
-                "su persistencia se incorporarán en la siguiente etapa; esto no confirma una reserva."
+                "Sí. Abrí la sección Solicitudes del menú y completá el formulario con datos "
+                "ficticios de contacto, especialidad y preferencia horaria. La solicitud quedará "
+                "registrada como pendiente; no confirma una reserva ni asigna automáticamente un turno."
             ),
             "citations": (),
         }
@@ -113,6 +149,7 @@ def build_agent_graph(
 
     builder = StateGraph(AgentState)
     builder.add_node("classify", classify_node)
+    builder.add_node("contextualize", contextualize_node)
     builder.add_node("retrieve", retrieve_node)
     builder.add_node("generate", generate_node)
     builder.add_node("clinical", clinical_node)
@@ -121,7 +158,18 @@ def build_agent_graph(
     builder.add_node("invalid", invalid_node)
     builder.add_node("insufficient", insufficient_node)
     builder.add_edge(START, "classify")
-    builder.add_conditional_edges("classify", route_intent)
+    builder.add_conditional_edges(
+        "classify",
+        route_intent,
+        {
+            "retrieve": "contextualize",
+            "clinical": "clinical",
+            "appointment": "appointment",
+            "greeting": "greeting",
+            "invalid": "invalid",
+        },
+    )
+    builder.add_edge("contextualize", "retrieve")
     builder.add_conditional_edges("retrieve", route_evidence)
     for terminal in (
         "generate",

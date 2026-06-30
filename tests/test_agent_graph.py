@@ -31,6 +31,9 @@ def test_intent_classifier_keeps_admin_questions_documental() -> None:
     assert classify_intent("¿Cómo cancelo un turno?") == "documental"
     assert classify_intent("¿Qué medicamento tomo?") == "clinical"
     assert classify_intent("Quiero solicitar un turno") == "appointment"
+    assert classify_intent("¿Podemos gestionar un turno?") == "appointment"
+    assert classify_intent("¿Cómo puedo pedir un turno?") == "appointment"
+    assert classify_intent("¿Cómo cancelo un turno?") == "documental"
     assert classify_intent("Hola") == "greeting"
     assert classify_intent("Muchas gracias!") == "greeting"
     assert classify_intent("Hola, ¿qué cardiólogos atienden?") == "documental"
@@ -58,4 +61,43 @@ def test_graph_answers_greeting_without_retrieval_or_model() -> None:
     assert "¡Hola!" in result["answer"]
     assert "¿Qué necesitás consultar?" in result["answer"]
     assert result["citations"] == ()
+    assert result.get("documents") is None
+
+
+def test_graph_routes_appointment_request_without_rag() -> None:
+    result = graph().invoke({"question": "¿Podemos gestionar un turno?"})
+    assert "sección Solicitudes" in result["answer"]
+    assert "pendiente" in result["answer"]
+    assert result["citations"] == ()
+    assert result.get("documents") is None
+
+
+def test_follow_up_question_is_contextualized_for_retrieval() -> None:
+    result = graph().invoke(
+        {
+            "question": "¿Y sus horarios?",
+            "conversation": (
+                {"role": "user", "content": "¿Qué cardiólogos atienden?"},
+                {"role": "assistant", "content": "Atienden dos especialistas."},
+            ),
+        }
+    )
+    assert "¿Qué cardiólogos atienden?" in result["retrieval_question"]
+    assert "¿Y sus horarios?" in result["retrieval_question"]
+
+
+def test_short_confirmation_uses_appointment_history() -> None:
+    result = graph().invoke(
+        {
+            "question": "Dale",
+            "conversation": (
+                {
+                    "role": "assistant",
+                    "content": "¿Querés registrar una solicitud de turno?",
+                },
+            ),
+        }
+    )
+    assert result["intent"] == "appointment"
+    assert "sección Solicitudes" in result["answer"]
     assert result.get("documents") is None

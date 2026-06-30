@@ -45,8 +45,12 @@ st.markdown(
 )
 
 
+RUNTIME_VERSION = "conversation-memory-v1"
+
+
 @st.cache_resource(show_spinner="Preparando el agente RAG...")
-def build_runtime():
+def build_runtime(version: str = RUNTIME_VERSION):
+    del version  # La versión invalida la caché cuando cambia el grafo.
     settings = get_settings()
     embeddings = create_embeddings(
         provider=settings.embeddings_provider,
@@ -83,7 +87,7 @@ def trace_for(result: dict) -> list[str]:
     intent = result.get("intent", "invalid")
     steps = ["Clasificar intención"]
     if intent == "documental":
-        steps.extend(["Recuperar documentos", "Evaluar evidencia"])
+        steps.extend(["Contextualizar seguimiento", "Recuperar documentos", "Evaluar evidencia"])
         steps.append("Generar respuesta" if result.get("sufficient") else "Respuesta insuficiente")
     elif intent == "clinical":
         steps.append("Aplicar guardrail clínico")
@@ -125,7 +129,7 @@ def render_trace(settings, result: dict | None) -> None:
 
 
 def render_assistant() -> None:
-    settings, graph = build_runtime()
+    settings, graph = build_runtime(RUNTIME_VERSION)
     main, technical = st.columns([2.35, 0.8], gap="large")
     with main:
         st.title("Asistente documental")
@@ -146,12 +150,25 @@ def render_assistant() -> None:
                             f'<div class="citation">📄 {citation["source"]} · página {page}</div>',
                             unsafe_allow_html=True,
                         )
+                if message.get("intent") == "appointment":
+                    st.button(
+                        "Ir a Solicitudes",
+                        key=f"request_{message.get('id', id(message))}",
+                        on_click=go_to_requests,
+                        type="primary",
+                    )
         prompt = st.chat_input("Escribí tu consulta sobre Medinova")
         if prompt:
+            conversation = tuple(
+                {"role": message["role"], "content": message["content"]}
+                for message in st.session_state.messages[-8:]
+            )
             st.session_state.messages.append({"role": "user", "content": prompt})
             with st.spinner("LangGraph está consultando el corpus..."):
                 try:
-                    result = graph.invoke({"question": prompt})
+                    result = graph.invoke(
+                        {"question": prompt, "conversation": conversation}
+                    )
                 except Exception:
                     st.error(
                         "El proveedor de IA no pudo completar la consulta. "
@@ -164,6 +181,8 @@ def render_assistant() -> None:
                     "role": "assistant",
                     "content": result["answer"],
                     "citations": result.get("citations", ()),
+                    "intent": result.get("intent"),
+                    "id": len(st.session_state.messages),
                 }
             )
             st.rerun()
@@ -220,6 +239,10 @@ def render_requests() -> None:
             st.info("Todavía no hay solicitudes de demostración.")
 
 
+def go_to_requests() -> None:
+    st.session_state.navigation = "Solicitudes"
+
+
 with st.sidebar:
     st.title("Medinova AI Agent")
     st.caption("RAG · LangChain · LangGraph")
@@ -227,6 +250,7 @@ with st.sidebar:
         "Navegación",
         ("Asistente", "Documentos", "Solicitudes"),
         label_visibility="collapsed",
+        key="navigation",
     )
     st.markdown("---")
     if st.button("Nueva conversación", use_container_width=True):
