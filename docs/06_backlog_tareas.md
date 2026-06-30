@@ -23,7 +23,8 @@
 - [x] DEC-05 (P1): solicitud pendiente + panel básico en CSV.
 - [x] DEC-04 (P0): Streamlit y Chroma local persistente.
 - [x] DEC-06 (P0): `gemini-3.5-flash` principal, 2.5 fallback y `gemini-embedding-001`.
-- [x] SRC-01 (P0): cinco documentos PDF ficticios versión 2.0, 25 páginas totales, renderizados y revisados.
+- [x] SRC-01 (P0): cinco documentos PDF institucionales versión 2.0, 25 páginas totales, renderizados y revisados.
+- [x] SRC-02 (P1): directorio PDF con 20 especialistas ficticios en 8 especialidades, 5 páginas.
 
 ## Bloqueado por decisión o aprendizaje
 

@@ -40,5 +40,5 @@ def test_golden_dataset_offline_source_recall(tmp_path: Path) -> None:
     index_documents(store, chunks)
     cases = json.loads(Path("tests/data/golden_questions.json").read_text(encoding="utf-8"))
     evaluation = evaluate_source_recall(store, cases, k=5)
-    assert evaluation.evaluated == 14
+    assert evaluation.evaluated == 18
     assert evaluation.source_recall_at_k >= 0.70, evaluation

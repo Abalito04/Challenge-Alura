@@ -24,6 +24,7 @@
 | ADR-018 | Chat: `gemini-3.5-flash`; fallback `gemini-2.5-flash` | modelos Flash estables y configurables |
 | ADR-019 | Embeddings: `gemini-embedding-001` | el pipeline extrae texto de los PDF antes de vectorizar |
 | ADR-025 | Corpus inicial: cinco PDF institucionales versión 2.0, cinco páginas cada uno | suficiente profundidad para evaluar chunking y retrieval sin introducir relleno |
+| ADR-026 | Directorio de especialistas separado, con 20 profesionales ficticios | permite diversidad de atención sin mezclar disponibilidad real ni consejo clínico |
 
 ## Decisiones pendientes (bloqueantes)
 

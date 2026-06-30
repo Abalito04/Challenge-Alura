@@ -14,6 +14,9 @@
   {"id":"GOLD-13","question":"¿Qué ocurre si una autorización vence al reagendar?","sources":["guia_convenios_coberturas.pdf","politica_cancelaciones_reagendamiento.pdf"]},
   {"id":"GOLD-14","question":"¿Cuándo se elimina una solicitud que no terminó en turno?","sources":["politica_privacidad_pacientes.pdf"]},
   {"id":"GOLD-15","question":"¿El recordatorio confirma o reemplaza mi turno?","sources":["faq_consultas_turnos.pdf"]},
-  {"id":"GOLD-16","question":"¿Administración puede interpretar mis resultados?","sources":["instrucciones_pre_post_consulta.pdf"]}
+  {"id":"GOLD-16","question":"¿Administración puede interpretar mis resultados?","sources":["instrucciones_pre_post_consulta.pdf"]},
+  {"id":"GOLD-17","question":"¿Quién atiende cardiología en la sede Norte?","sources":["directorio_especialistas_y_servicios.pdf"]},
+  {"id":"GOLD-18","question":"¿Hay pediatras que atiendan los viernes?","sources":["directorio_especialistas_y_servicios.pdf"]},
+  {"id":"GOLD-19","question":"¿Qué profesionales de clínica médica aceptan Salud Federal?","sources":["directorio_especialistas_y_servicios.pdf"]},
+  {"id":"GOLD-20","question":"¿Quién atiende traumatología por la tarde?","sources":["directorio_especialistas_y_servicios.pdf"]}
 ]
-

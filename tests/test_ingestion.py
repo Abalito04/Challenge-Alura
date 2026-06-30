@@ -9,8 +9,8 @@ from tests.fakes import HashingEmbeddings
 
 def test_loads_complete_pdf_corpus() -> None:
     pages = load_pdf_corpus(Path("source_documents"))
-    assert len(pages) == 25
-    assert len({page.metadata["source"] for page in pages}) == 5
+    assert len(pages) == 30
+    assert len({page.metadata["source"] for page in pages}) == 6
     assert all(page.metadata["page"] >= 1 for page in pages)
     assert all(len(page.metadata["source_sha256"]) == 64 for page in pages)
     assert all(page.metadata["corpus"] == "medinova-v2" for page in pages)
@@ -33,6 +33,6 @@ def test_complete_offline_ingestion_pipeline(tmp_path: Path) -> None:
         chroma_collection="medinova_pipeline_test",
     )
     result = ingest_corpus(settings, embeddings=HashingEmbeddings())
-    assert result.files == 5
-    assert result.pages == 25
-    assert result.chunks > 25
+    assert result.files == 6
+    assert result.pages == 30
+    assert result.chunks > 30

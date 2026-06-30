@@ -75,6 +75,10 @@ Los valores de `k`, umbral y objetivos numéricos se fijarán después de crear 
 | GOLD-14 | ¿Cuándo se elimina una solicitud que no terminó en turno? | `politica_privacidad_pacientes.pdf` | 12 meses y eliminar o anonimizar |
 | GOLD-15 | ¿El recordatorio confirma o reemplaza mi turno? | `faq_consultas_turnos.pdf` | no; la confirmación exige código, fecha, hora y sede |
 | GOLD-16 | ¿Administración puede interpretar mis resultados? | `instrucciones_pre_post_consulta.pdf` | no; derivar al profesional |
+| GOLD-17 | ¿Quién atiende cardiología en sede Norte? | `directorio_especialistas_y_servicios.pdf` | Dra. Emilia Ríos; horario habitual, sin confirmar cupo |
+| GOLD-18 | ¿Hay pediatras los viernes? | `directorio_especialistas_y_servicios.pdf` | Dr. Sebastián Luna; sede Norte 08:00-13:00 |
+| GOLD-19 | ¿Qué profesionales de clínica médica aceptan Salud Federal? | `directorio_especialistas_y_servicios.pdf` | Lucía Benítez y Paula Sosa según plan listado |
+| GOLD-20 | ¿Quién atiende traumatología por la tarde? | `directorio_especialistas_y_servicios.pdf` | Agustina Peralta; sede Norte 13:00-18:00 |
 
 ## Datos y reproducibilidad
 
