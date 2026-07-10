@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Literal, TypedDict
 
 from langchain_core.documents import Document
@@ -21,6 +22,8 @@ class AgentState(TypedDict, total=False):
     sufficient: bool
     answer: str
     citations: tuple[dict[str, Any], ...]
+    appointment_professional: str
+    appointment_specialty: str
 
 
 def build_agent_graph(
@@ -118,14 +121,30 @@ def build_agent_graph(
             "citations": (),
         }
 
-    def appointment_node(_: AgentState) -> AgentState:
+    def appointment_node(state: AgentState) -> AgentState:
+        context = "\n".join(
+            item.get("content", "") for item in state.get("conversation", ())[-8:]
+        )
+        professionals = re.findall(
+            r"\b(?:Dra?\.)\s+[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ]+){1,2}",
+            context,
+        )
+        professional = professionals[-1] if professionals else ""
+        specialty = "Cardiología" if re.search(r"cardiolog", context, re.IGNORECASE) else ""
+        detail = ""
+        if professional:
+            detail = f" para {professional}"
+        elif specialty:
+            detail = f" para {specialty}"
         return {
             "answer": (
-                "Sí. Abrí la sección Solicitudes del menú y completá el formulario con datos "
-                "ficticios de contacto, especialidad y preferencia horaria. La solicitud quedará "
+                f"Sí. Puedo derivarte al formulario de la sección Solicitudes{detail}. "
+                "Completá los datos de contacto y preferencia horaria. La solicitud quedará "
                 "registrada como pendiente; no confirma una reserva ni asigna automáticamente un turno."
             ),
             "citations": (),
+            "appointment_professional": professional,
+            "appointment_specialty": specialty,
         }
 
     def greeting_node(_: AgentState) -> AgentState:

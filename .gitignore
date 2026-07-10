@@ -16,10 +16,10 @@ venv/
 data/chroma/
 data/turnos_solicitudes.csv
 data/*.tmp
+tmp/
 
 # IDE / OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-

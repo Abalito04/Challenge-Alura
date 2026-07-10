@@ -101,3 +101,22 @@ def test_short_confirmation_uses_appointment_history() -> None:
     assert result["intent"] == "appointment"
     assert "sección Solicitudes" in result["answer"]
     assert result.get("documents") is None
+
+
+def test_appointment_derivation_preserves_professional_and_specialty() -> None:
+    result = graph().invoke(
+        {
+            "question": "Bien, quiero un turno con la dra",
+            "conversation": (
+                {"role": "user", "content": "¿Qué cardiólogos atienden?"},
+                {
+                    "role": "assistant",
+                    "content": "Dr. Andrés Ferreyra y Dra. Emilia Ríos atienden en Cardiología.",
+                },
+            ),
+        }
+    )
+    assert result["intent"] == "appointment"
+    assert result["appointment_professional"] == "Dra. Emilia Ríos"
+    assert result["appointment_specialty"] == "Cardiología"
+    assert "Dra. Emilia Ríos" in result["answer"]

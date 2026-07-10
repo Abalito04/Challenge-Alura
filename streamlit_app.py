@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import streamlit as st
@@ -9,6 +10,7 @@ from app.appointments import append_request, create_request, load_requests
 from app.config import get_settings
 from app.llm_provider import create_chat_model
 from app.rag.embeddings import create_embeddings
+from app.rag.pipeline import ingest_corpus
 from app.rag.vectorstore import open_vectorstore
 
 
@@ -19,33 +21,169 @@ st.set_page_config(
     initial_sidebar_state="auto",
 )
 
+
+def apply_theme(mode: str) -> None:
+    if mode == "Oscuro":
+        palette = {
+            "app_bg": "#071923",
+            "surface": "#0e2431",
+            "surface_soft": "#132f3f",
+            "text": "#e8f3f6",
+            "muted": "#a9c3cf",
+            "line": "#244655",
+            "chat_bg": "#0d2330",
+            "citation": "#c3dbe4",
+            "step": "#d5eef3",
+            "teal": "#22b8ac",
+            "teal_hover": "#15998f",
+            "input_bg": "#0b202c",
+        }
+    else:
+        palette = {
+            "app_bg": "#ffffff",
+            "surface": "#ffffff",
+            "surface_soft": "#f4f8fa",
+            "text": "#0b2c50",
+            "muted": "#52697e",
+            "line": "#dbe5ec",
+            "chat_bg": "#fbfdfe",
+            "citation": "#31536f",
+            "step": "#1f4669",
+            "teal": "#078b83",
+            "teal_hover": "#067a73",
+            "input_bg": "#ffffff",
+        }
+    st.markdown(
+        f"""
+        <style>
+        :root {{
+            --app-bg:{palette["app_bg"]};
+            --surface:{palette["surface"]};
+            --surface-soft:{palette["surface_soft"]};
+            --text:{palette["text"]};
+            --muted:{palette["muted"]};
+            --line:{palette["line"]};
+            --chat-bg:{palette["chat_bg"]};
+            --citation:{palette["citation"]};
+            --step:{palette["step"]};
+            --teal:{palette["teal"]};
+            --teal-hover:{palette["teal_hover"]};
+            --input-bg:{palette["input_bg"]};
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 st.markdown(
     """
     <style>
-    :root { --navy:#0b2c50; --teal:#078b83; --line:#dbe5ec; --soft:#f4f8fa; }
-    .stApp { background:#fff; color:var(--navy); }
-    [data-testid="stHeader"] { background:rgba(255,255,255,.96); border-bottom:1px solid var(--line); }
-    [data-testid="stSidebar"] { background:#fff; border-right:1px solid var(--line); }
-    [data-testid="stSidebar"] h1 { color:var(--navy); font-size:1.55rem; }
+    .stApp { background:var(--app-bg); color:var(--text); }
+    [data-testid="stHeader"] { background:var(--surface); border-bottom:1px solid var(--line); }
+    [data-testid="stSidebar"] { background:var(--surface); border-right:1px solid var(--line); }
+    [data-testid="stSidebar"] h1 { color:var(--text); font-size:1.55rem; }
     .block-container { padding-top:1.9rem; max-width:1500px; }
-    h1,h2,h3 { color:var(--navy); letter-spacing:-.02em; }
-    .provider-line { color:#52697e; font-size:.88rem; margin-bottom:1.25rem; }
-    .trace { border-left:1px solid var(--line); padding-left:1.4rem; min-height:68vh; }
-    .trace-step { padding:.52rem 0; border-bottom:1px solid #edf2f5; color:#1f4669; }
+    h1,h2,h3 { color:var(--text); letter-spacing:-.02em; }
+    p, li, label, span, div { color:var(--text); }
+    .provider-line { color:var(--muted); font-size:.88rem; margin-bottom:1.25rem; }
+    .trace {
+        position:sticky;
+        top:4rem;
+        border-left:1px solid var(--line);
+        padding-left:1.4rem;
+        max-height:calc(100vh - 5rem);
+        overflow:auto;
+    }
+    .trace-step { padding:.52rem 0; border-bottom:1px solid var(--line); color:var(--step); }
     .trace-step strong { color:var(--teal); margin-right:.45rem; }
-    .citation { padding:.72rem .85rem; border-top:1px solid var(--line); color:#31536f; }
+    .citation { padding:.72rem .85rem; border-top:1px solid var(--line); color:var(--citation); }
     .citation:first-child { border-top:0; }
-    .small-note { color:#61798d; font-size:.85rem; }
-    .stButton > button, .stFormSubmitButton > button { border-color:var(--teal); color:var(--teal); }
-    .stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"] { background:var(--teal); color:white; }
-    [data-testid="stChatMessage"] { border:1px solid #e5edf2; border-radius:12px; background:#fbfdfe; }
+    .small-note { color:var(--muted); font-size:.85rem; }
+    .stButton > button,
+    .stFormSubmitButton > button {
+        background:var(--teal) !important;
+        border-color:var(--teal) !important;
+        color:#fff !important;
+    }
+    .stButton > button *,
+    .stFormSubmitButton > button *,
+    .stButton > button p,
+    .stFormSubmitButton > button p,
+    .stButton > button span,
+    .stFormSubmitButton > button span {
+        color:#fff !important;
+        opacity:1 !important;
+        visibility:visible !important;
+    }
+    .stButton > button:hover,
+    .stFormSubmitButton > button:hover {
+        background:var(--teal-hover) !important;
+        border-color:var(--teal-hover) !important;
+        color:#fff !important;
+    }
+    .stButton > button[kind="primary"],
+    .stFormSubmitButton > button[kind="primary"],
+    button[data-testid="baseButton-primary"] {
+        background:var(--teal) !important;
+        border-color:var(--teal) !important;
+        color:#fff !important;
+    }
+    .stButton > button[kind="primary"] *,
+    .stFormSubmitButton > button[kind="primary"] *,
+    button[data-testid="baseButton-primary"] *,
+    button[data-testid="baseButton-primary"] p,
+    button[data-testid="baseButton-primary"] span {
+        color:#fff !important;
+        opacity:1 !important;
+        visibility:visible !important;
+    }
+    [data-testid="stChatMessage"] {
+        border:1px solid var(--line);
+        border-radius:12px;
+        background:var(--chat-bg);
+    }
+    [data-testid="stChatMessage"] * { color:var(--text); }
+    [data-testid="stMarkdownContainer"] code {
+        background:var(--surface-soft);
+        color:var(--teal);
+        border:1px solid var(--line);
+    }
+    input, textarea, [data-baseweb="input"] input, [data-baseweb="textarea"] textarea {
+        background:var(--input-bg) !important;
+        color:var(--text) !important;
+    }
+    [data-baseweb="input"], [data-baseweb="textarea"] {
+        background:var(--input-bg) !important;
+        border-color:var(--line) !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 
-RUNTIME_VERSION = "conversation-memory-v1"
+RUNTIME_VERSION = "protected-upload-v1"
+
+
+def safe_pdf_name(filename: str) -> str:
+    stem = Path(filename).stem.lower()
+    stem = re.sub(r"[^a-z0-9áéíóúñü]+", "_", stem, flags=re.IGNORECASE).strip("_")
+    return f"{stem or 'documento'}{Path(filename).suffix.lower() or '.pdf'}"
+
+
+def unique_document_path(directory: Path, filename: str) -> Path:
+    candidate = directory / safe_pdf_name(filename)
+    if not candidate.exists():
+        return candidate
+    stem = candidate.stem
+    suffix = candidate.suffix
+    index = 2
+    while True:
+        numbered = directory / f"{stem}_{index}{suffix}"
+        if not numbered.exists():
+            return numbered
+        index += 1
 
 
 @st.cache_resource(show_spinner="Preparando el agente RAG...")
@@ -129,7 +267,36 @@ def render_trace(settings, result: dict | None) -> None:
 
 
 def render_assistant() -> None:
-    settings, graph = build_runtime(RUNTIME_VERSION)
+    try:
+        settings, graph = build_runtime(RUNTIME_VERSION)
+    except Exception as exc:
+        st.title("Asistente documental")
+        st.error("No se pudo inicializar el agente RAG.")
+        st.info(
+            "Revisá que exista el archivo `.env` en la raíz del proyecto y que incluya "
+            "las API keys configuradas para LLM y embeddings."
+        )
+        with st.expander("Detalle técnico"):
+            st.code(str(exc))
+        st.markdown(
+            """
+            Ejemplo mínimo recomendado:
+
+            ```env
+            LLM_PROVIDER=cohere
+            LLM_MODEL=command-a-03-2025
+            LLM_FALLBACK_PROVIDER=openai
+            LLM_FALLBACK_MODEL=gpt-5.4-mini
+            EMBEDDINGS_PROVIDER=gemini
+            EMBEDDINGS_MODEL=gemini-embedding-001
+            COHERE_API_KEY=tu_key_de_cohere
+            OPENAI_API_KEY=tu_key_de_openai
+            GEMINI_API_KEY=tu_key_de_gemini
+            DOCUMENT_UPLOAD_PASSWORD=la_clave_que_quieras
+            ```
+            """
+        )
+        return
     main, technical = st.columns([2.35, 0.8], gap="large")
     with main:
         st.title("Asistente documental")
@@ -155,7 +322,10 @@ def render_assistant() -> None:
                         "Ir a Solicitudes",
                         key=f"request_{message.get('id', id(message))}",
                         on_click=go_to_requests,
-                        type="primary",
+                        args=(
+                            message.get("appointment_professional", ""),
+                            message.get("appointment_specialty", ""),
+                        ),
                     )
         prompt = st.chat_input("Escribí tu consulta sobre Medinova")
         if prompt:
@@ -182,6 +352,8 @@ def render_assistant() -> None:
                     "content": result["answer"],
                     "citations": result.get("citations", ()),
                     "intent": result.get("intent"),
+                    "appointment_professional": result.get("appointment_professional", ""),
+                    "appointment_specialty": result.get("appointment_specialty", ""),
                     "id": len(st.session_state.messages),
                 }
             )
@@ -191,33 +363,73 @@ def render_assistant() -> None:
 
 
 def render_documents() -> None:
+    settings = get_settings()
     st.title("Documentos del corpus")
     st.write("Los PDF versionados son la fuente de verdad del RAG.")
-    files = sorted(Path("source_documents").glob("*.pdf"))
+    files = sorted(settings.source_documents_dir.glob("*.pdf"))
     for file in files:
         st.markdown(f"📄 **{file.name}**")
     st.divider()
-    st.file_uploader(
-        "Agregar PDF en una evolución futura",
-        type="pdf",
-        disabled=True,
-        help="La carga dinámica requiere validación, permisos y reindexado controlado.",
+    st.subheader("Carga protegida de documentos")
+    st.caption(
+        "Solo personal autorizado puede agregar PDFs al corpus. "
+        "Al cargar un archivo, el índice RAG se actualiza automáticamente."
     )
+    if not settings.document_upload_password:
+        st.warning(
+            "Configurá DOCUMENT_UPLOAD_PASSWORD en el archivo .env para habilitar la carga."
+        )
+        return
+    with st.form("protected_document_upload", clear_on_submit=True):
+        password = st.text_input("Contraseña de carga", type="password")
+        uploaded = st.file_uploader("Seleccionar PDF", type="pdf")
+        submitted = st.form_submit_button("Cargar e indexar PDF")
+    if submitted:
+        if password != settings.document_upload_password:
+            st.error("Contraseña incorrecta.")
+            return
+        if uploaded is None:
+            st.error("Seleccioná un archivo PDF.")
+            return
+        content = uploaded.getvalue()
+        if not content.startswith(b"%PDF"):
+            st.error("El archivo seleccionado no parece ser un PDF válido.")
+            return
+        settings.source_documents_dir.mkdir(parents=True, exist_ok=True)
+        destination = unique_document_path(settings.source_documents_dir, uploaded.name)
+        destination.write_bytes(content)
+        with st.spinner("Indexando el corpus actualizado..."):
+            result = ingest_corpus(settings)
+        build_runtime.clear()
+        st.session_state.pop("last_result", None)
+        st.success(
+            "PDF cargado e indexado: "
+            f"{destination.name}. Corpus: {result.files} archivos, "
+            f"{result.pages} páginas, {result.chunks} fragmentos."
+        )
 
 
 def render_requests() -> None:
     st.title("Solicitudes de turno")
-    st.warning("Demostración: usá únicamente datos ficticios. Una solicitud no confirma un turno.")
+    st.info("Una solicitud queda pendiente hasta que el equipo de admisión confirme fecha, hora y sede.")
     path = Path("data/turnos_solicitudes.csv")
     request_tab, panel_tab = st.tabs(["Nueva solicitud", "Panel básico"])
     with request_tab:
         with st.form("appointment_request", clear_on_submit=True):
-            name = st.text_input("Nombre ficticio")
-            contact = st.text_input("Contacto ficticio")
-            specialty = st.text_input("Especialidad")
+            name = st.text_input("Nombre y apellido")
+            contact = st.text_input("Contacto")
+            specialty = st.text_input(
+                "Especialidad",
+                value=st.session_state.get("appointment_specialty", ""),
+            )
             preferred = st.text_input("Preferencia horaria")
-            notes = st.text_area("Observaciones", max_chars=300)
-            submitted = st.form_submit_button("Registrar solicitud pendiente", type="primary")
+            professional = st.session_state.get("appointment_professional", "")
+            notes = st.text_area(
+                "Observaciones",
+                value=(f"Profesional solicitado: {professional}" if professional else ""),
+                max_chars=300,
+            )
+            submitted = st.form_submit_button("Registrar solicitud pendiente")
         if submitted:
             try:
                 request = create_request(
@@ -239,11 +451,21 @@ def render_requests() -> None:
             st.info("Todavía no hay solicitudes de demostración.")
 
 
-def go_to_requests() -> None:
+def go_to_requests(professional: str = "", specialty: str = "") -> None:
+    st.session_state.appointment_professional = professional
+    st.session_state.appointment_specialty = specialty
     st.session_state.navigation = "Solicitudes"
 
 
 with st.sidebar:
+    theme = st.radio(
+        "Tema",
+        ("Claro", "Oscuro"),
+        horizontal=True,
+        key="theme_mode",
+    )
+    apply_theme(theme)
+    st.markdown("---")
     st.title("Medinova AI Agent")
     st.caption("RAG · LangChain · LangGraph")
     page = st.radio(

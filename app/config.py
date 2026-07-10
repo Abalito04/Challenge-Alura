@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     )
     openai_api_key: str | None = Field(default=None, repr=False)
     cohere_api_key: str | None = Field(default=None, repr=False)
+    document_upload_password: str | None = Field(default=None, repr=False)
 
     source_documents_dir: Path = Path("source_documents")
     chroma_persist_dir: Path = Path("data/chroma")
