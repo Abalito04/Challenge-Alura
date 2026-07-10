@@ -15,6 +15,7 @@ venv/
 # Generated application data
 data/chroma/
 data/turnos_solicitudes.csv
+data/chat_history.json
 data/*.tmp
 tmp/
 

@@ -7,6 +7,7 @@ import streamlit as st
 
 from app.agent.graph import build_agent_graph
 from app.appointments import append_request, create_request, load_requests
+from app.chat_history import clear_chat_history, load_chat_history, save_chat_history
 from app.config import get_settings
 from app.llm_provider import create_chat_model
 from app.rag.embeddings import create_embeddings
@@ -36,7 +37,10 @@ def apply_theme(mode: str) -> None:
             "step": "#d5eef3",
             "teal": "#22b8ac",
             "teal_hover": "#15998f",
-            "input_bg": "#0b202c",
+            "input_bg": "#0b2533",
+            "input_shell": "#123647",
+            "input_border": "#356579",
+            "shadow": "0 18px 45px rgba(0,0,0,.34)",
         }
     else:
         palette = {
@@ -52,6 +56,9 @@ def apply_theme(mode: str) -> None:
             "teal": "#078b83",
             "teal_hover": "#067a73",
             "input_bg": "#ffffff",
+            "input_shell": "#f7fbfc",
+            "input_border": "#b8d0dc",
+            "shadow": "0 16px 38px rgba(11,44,80,.14)",
         }
     st.markdown(
         f"""
@@ -69,6 +76,9 @@ def apply_theme(mode: str) -> None:
             --teal:{palette["teal"]};
             --teal-hover:{palette["teal_hover"]};
             --input-bg:{palette["input_bg"]};
+            --input-shell:{palette["input_shell"]};
+            --input-border:{palette["input_border"]};
+            --shadow:{palette["shadow"]};
         }}
         </style>
         """,
@@ -157,6 +167,64 @@ st.markdown(
         background:var(--input-bg) !important;
         border-color:var(--line) !important;
     }
+    [data-testid="stChatInput"] {
+        background:transparent !important;
+        margin-top:1.3rem !important;
+    }
+    [data-testid="stChatInput"] > div {
+        background:var(--input-shell) !important;
+        border:1px solid var(--input-border) !important;
+        border-radius:24px !important;
+        box-shadow:var(--shadow);
+        padding:.55rem .62rem !important;
+        min-height:68px !important;
+        display:flex !important;
+        align-items:center !important;
+    }
+    [data-testid="stChatInput"] [data-baseweb="textarea"] {
+        background:var(--input-bg) !important;
+        border:1px solid var(--input-border) !important;
+        border-radius:18px !important;
+        min-height:48px !important;
+        display:flex !important;
+        align-items:center !important;
+    }
+    [data-testid="stChatInput"] textarea {
+        background:var(--input-bg) !important;
+        color:var(--text) !important;
+        caret-color:var(--teal) !important;
+        min-height:46px !important;
+        padding:.72rem 1rem !important;
+        font-size:1rem !important;
+        line-height:1.35 !important;
+    }
+    [data-testid="stChatInput"] textarea::placeholder {
+        color:var(--muted) !important;
+        opacity:.9 !important;
+    }
+    [data-testid="stChatInput"] button {
+        background:var(--teal) !important;
+        border:1px solid var(--teal) !important;
+        border-radius:16px !important;
+        color:#fff !important;
+        width:48px !important;
+        height:48px !important;
+        min-width:48px !important;
+        margin-left:.55rem !important;
+        box-shadow:0 10px 22px rgba(7,139,131,.28);
+    }
+    [data-testid="stChatInput"] button:hover {
+        background:var(--teal-hover) !important;
+        border-color:var(--teal-hover) !important;
+        transform:translateY(-1px);
+    }
+    [data-testid="stChatInput"] button svg,
+    [data-testid="stChatInput"] button svg path {
+        color:#fff !important;
+        fill:none !important;
+        stroke:#fff !important;
+        stroke-width:2.4 !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -164,6 +232,7 @@ st.markdown(
 
 
 RUNTIME_VERSION = "protected-upload-v1"
+CHAT_HISTORY_PATH = Path("data/chat_history.json")
 
 
 def safe_pdf_name(filename: str) -> str:
@@ -305,7 +374,7 @@ def render_assistant() -> None:
             unsafe_allow_html=True,
         )
         if "messages" not in st.session_state:
-            st.session_state.messages = []
+            st.session_state.messages = load_chat_history(CHAT_HISTORY_PATH)
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
@@ -334,6 +403,7 @@ def render_assistant() -> None:
                 for message in st.session_state.messages[-8:]
             )
             st.session_state.messages.append({"role": "user", "content": prompt})
+            save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
             with st.spinner("LangGraph está consultando el corpus..."):
                 try:
                     result = graph.invoke(
@@ -357,6 +427,7 @@ def render_assistant() -> None:
                     "id": len(st.session_state.messages),
                 }
             )
+            save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
             st.rerun()
     with technical:
         render_trace(settings, st.session_state.get("last_result"))
@@ -478,6 +549,7 @@ with st.sidebar:
     if st.button("Nueva conversación", use_container_width=True):
         st.session_state.messages = []
         st.session_state.pop("last_result", None)
+        clear_chat_history(CHAT_HISTORY_PATH)
         st.rerun()
 
 if page == "Asistente":
