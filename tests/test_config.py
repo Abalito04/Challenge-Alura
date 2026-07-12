@@ -50,7 +50,7 @@ def test_cohere_is_the_default_provider(monkeypatch) -> None:
     assert settings.llm_fallback_model == "gemini-2.5-flash"
     assert settings.embeddings_provider == "cohere"
     assert settings.embeddings_model == "embed-v4.0"
-    assert settings.vector_collection_name == "medinova_documents"
+    assert settings.vector_collection_name == "medinova_documents_cohere_embed_v4_0"
 
 
 def test_google_api_key_is_accepted_as_gemini_alias(monkeypatch) -> None:

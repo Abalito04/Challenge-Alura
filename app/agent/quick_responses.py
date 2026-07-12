@@ -15,6 +15,18 @@ DIRECTORY_CITATIONS = (
     {"source": "directorio_especialistas_y_servicios.pdf", "page": 5},
 )
 
+POLICY_CITATIONS = (
+    {"source": "politica_cancelaciones_reagendamiento.pdf", "page": 1},
+)
+
+LOCATION_CITATIONS = (
+    {"source": "directorio_especialistas_y_servicios.pdf", "page": 1},
+    {"source": "directorio_especialistas_y_servicios.pdf", "page": 2},
+    {"source": "directorio_especialistas_y_servicios.pdf", "page": 3},
+    {"source": "directorio_especialistas_y_servicios.pdf", "page": 4},
+    {"source": "directorio_especialistas_y_servicios.pdf", "page": 5},
+)
+
 SPECIALTIES = (
     "Cardiología",
     "Clínica médica",
@@ -158,6 +170,27 @@ def quick_response_for_intent(
         )
     if intent == "directory":
         return _directory_response(question)
+    if intent == "admin_policy":
+        return QuickResponse(
+            intent=intent,
+            answer=(
+                "Para cancelar o reagendar un turno, la política institucional indica avisar "
+                "con 24 horas de anticipación. La solicitud queda sujeta a revisión del equipo "
+                "de admisión; una solicitud pendiente no equivale a un turno confirmado."
+            ),
+            citations=POLICY_CITATIONS,
+        )
+    if intent == "location":
+        return QuickResponse(
+            intent=intent,
+            answer=(
+                "La documentación del directorio menciona atención en sedes de Medinova "
+                "como Sede Centro y Sede Norte. No tengo una dirección postal exacta en "
+                "los fragmentos disponibles; si querés, puedo ayudarte a consultar "
+                "profesionales por sede o registrar una solicitud pendiente."
+            ),
+            citations=LOCATION_CITATIONS,
+        )
     if intent == "appointment":
         context = _conversation_text(conversation)
         full_context = f"{context}\n{question}"

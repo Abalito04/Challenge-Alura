@@ -28,7 +28,7 @@ def graph():
 
 
 def test_intent_classifier_keeps_admin_questions_documental() -> None:
-    assert classify_intent("¿Cómo cancelo un turno?") == "documental"
+    assert classify_intent("¿Cómo cancelo un turno?") == "admin_policy"
     assert classify_intent("¿Qué medicamento tomo?") == "clinical"
     assert classify_intent("Quiero solicitar un turno") == "appointment"
     assert classify_intent("¿Podemos gestionar un turno?") == "appointment"
@@ -39,7 +39,8 @@ def test_intent_classifier_keeps_admin_questions_documental() -> None:
     assert classify_intent("que especialidades hay") == "directory"
     assert classify_intent("que medicos hay") == "directory"
     assert classify_intent("que medicos hay disponibles") == "directory"
-    assert classify_intent("¿Cómo cancelo un turno?") == "documental"
+    assert classify_intent("donde queda la clinica") == "location"
+    assert classify_intent("¿Cómo cancelo un turno?") == "admin_policy"
     assert classify_intent("Hola") == "greeting"
     assert classify_intent("hola buenas tardes") == "greeting"
     assert classify_intent("hola buenos dias") == "greeting"
@@ -53,6 +54,14 @@ def test_graph_generates_grounded_answer_with_citation() -> None:
     result = graph().invoke({"question": "¿Cuánto antes debo cancelar?"})
     assert "24 horas" in result["answer"]
     assert result["citations"][0]["source"] == "politica_cancelaciones_reagendamiento.pdf"
+
+
+def test_graph_answers_cancellation_policy_without_model() -> None:
+    result = graph().invoke({"question": "¿Cómo cancelo un turno?"})
+    assert result["intent"] == "admin_policy"
+    assert "24 horas" in result["answer"]
+    assert result["citations"][0]["source"] == "politica_cancelaciones_reagendamiento.pdf"
+    assert result.get("documents") is None
 
 
 def test_graph_rejects_clinical_question_without_sources() -> None:
@@ -174,4 +183,12 @@ def test_directory_professionals_short_question_answers_without_model() -> None:
     result = graph().invoke({"question": "que medicos hay"})
     assert result["intent"] == "directory"
     assert "Dr. Andrés Ferreyra" in result["answer"]
+    assert result.get("documents") is None
+
+
+def test_location_question_answers_without_model() -> None:
+    result = graph().invoke({"question": "donde queda la clinica"})
+    assert result["intent"] == "location"
+    assert "Sede Centro" in result["answer"]
+    assert "Sede Norte" in result["answer"]
     assert result.get("documents") is None

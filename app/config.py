@@ -83,11 +83,6 @@ class Settings(BaseSettings):
 
     @property
     def vector_collection_name(self) -> str:
-        if (
-            self.embeddings_provider.lower() == "cohere"
-            and self.embeddings_model.lower() == "embed-v4.0"
-        ):
-            return self.chroma_collection
         identity = f"{self.embeddings_provider}_{self.embeddings_model}".lower()
         slug = re.sub(r"[^a-z0-9]+", "_", identity).strip("_")
         return f"{self.chroma_collection}_{slug}"

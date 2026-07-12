@@ -101,6 +101,66 @@ st.markdown(
     [data-testid="stHeader"] { background:var(--surface); border-bottom:1px solid var(--line); }
     [data-testid="stSidebar"] { background:var(--surface); border-right:1px solid var(--line); }
     [data-testid="stSidebar"] h1 { color:var(--text); font-size:1.55rem; }
+    [data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+        padding-top:1.25rem;
+    }
+    .sidebar-brand {
+        border:1px solid var(--line);
+        border-radius:18px;
+        background:linear-gradient(180deg, var(--surface-soft), var(--surface));
+        padding:1rem 1rem .95rem;
+        margin:.25rem 0 1rem;
+    }
+    .brand-kicker {
+        color:var(--teal);
+        font-size:.78rem;
+        font-weight:700;
+        letter-spacing:.08em;
+        text-transform:uppercase;
+        margin-bottom:.35rem;
+    }
+    .brand-title {
+        color:var(--text);
+        font-size:1.35rem;
+        line-height:1.1;
+        font-weight:800;
+        letter-spacing:-.03em;
+        margin:0;
+    }
+    .brand-subtitle {
+        color:var(--muted);
+        font-size:.83rem;
+        margin-top:.45rem;
+    }
+    .sidebar-section-title {
+        color:var(--muted);
+        font-size:.74rem;
+        font-weight:700;
+        letter-spacing:.08em;
+        text-transform:uppercase;
+        margin:.9rem 0 .35rem;
+    }
+    [data-testid="stSidebar"] [data-testid="stRadio"] {
+        border:1px solid var(--line);
+        border-radius:16px;
+        background:var(--surface-soft);
+        padding:.65rem .75rem .55rem;
+        margin-bottom:.8rem;
+    }
+    [data-testid="stSidebar"] [data-testid="stRadio"] label {
+        color:var(--text) !important;
+    }
+    [data-testid="stSidebar"] hr {
+        margin:1rem 0;
+        border-color:var(--line);
+    }
+    .sidebar-actions {
+        border:1px solid var(--line);
+        border-radius:16px;
+        background:var(--surface-soft);
+        padding:.75rem;
+        margin-top:.85rem;
+    }
     .block-container { padding-top:1.9rem; max-width:1500px; }
     h1,h2,h3 { color:var(--text); letter-spacing:-.02em; }
     p, li, label, span, div { color:var(--text); }
@@ -263,7 +323,7 @@ st.markdown(
 )
 
 
-RUNTIME_VERSION = "quick-responses-v2"
+RUNTIME_VERSION = "quick-responses-v4"
 CHAT_HISTORY_PATH = Path("data/chat_history.json")
 
 
@@ -345,6 +405,10 @@ def trace_for(result: dict) -> list[str]:
         steps.append("Derivar a solicitudes")
     elif intent == "directory":
         steps.append("Responder directorio institucional")
+    elif intent == "admin_policy":
+        steps.append("Responder política administrativa")
+    elif intent == "location":
+        steps.append("Responder ubicación/sedes")
     elif intent == "greeting":
         steps.append("Responder conversación breve")
     else:
@@ -598,23 +662,33 @@ def go_to_requests(professional: str = "", specialty: str = "") -> None:
 
 
 with st.sidebar:
+    st.markdown(
+        """
+        <div class="sidebar-brand">
+            <div class="brand-kicker">Clínica Medinova</div>
+            <div class="brand-title">Medinova AI Agent</div>
+            <div class="brand-subtitle">RAG · LangChain · LangGraph · Chroma</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="sidebar-section-title">Preferencias</div>', unsafe_allow_html=True)
     theme = st.radio(
         "Tema",
         ("Claro", "Oscuro"),
         horizontal=True,
         key="theme_mode",
+        label_visibility="collapsed",
     )
     apply_theme(theme)
-    st.markdown("---")
-    st.title("Medinova AI Agent")
-    st.caption("RAG · LangChain · LangGraph")
+    st.markdown('<div class="sidebar-section-title">Navegación</div>', unsafe_allow_html=True)
     page = st.radio(
         "Navegación",
         ("Asistente", "Documentos", "Solicitudes"),
         label_visibility="collapsed",
         key="navigation",
     )
-    st.markdown("---")
+    st.markdown('<div class="sidebar-section-title">Acciones</div>', unsafe_allow_html=True)
     if st.button("Nueva conversación", use_container_width=True):
         st.session_state.messages = []
         st.session_state.pop("last_result", None)

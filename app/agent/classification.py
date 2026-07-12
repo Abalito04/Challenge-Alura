@@ -4,7 +4,16 @@ import re
 import unicodedata
 from typing import Literal
 
-Intent = Literal["documental", "clinical", "appointment", "directory", "greeting", "invalid"]
+Intent = Literal[
+    "documental",
+    "clinical",
+    "appointment",
+    "directory",
+    "admin_policy",
+    "location",
+    "greeting",
+    "invalid",
+]
 
 INVALID_PATTERNS = (
     r"\bboca\b",
@@ -44,6 +53,20 @@ DIRECTORY_PATTERNS = (
     r"\bservicios disponibles\b",
     r"\bdirectorio\b",
 )
+ADMIN_POLICY_PATTERNS = (
+    r"\bcomo cancelo (?:un )?turnos?\b",
+    r"\bcancel(?:ar|o|acion|aciones).{0,25}turnos?\b",
+    r"\banul(?:ar|o).{0,25}turnos?\b",
+    r"\breagend(?:ar|o|amiento).{0,25}turnos?\b",
+    r"\bcambiar.{0,25}turnos?\b",
+)
+LOCATION_PATTERNS = (
+    r"\bdonde queda\b",
+    r"\bdonde estan\b",
+    r"\bubicaci(?:on|ones)\b",
+    r"\bdireccion(?:es)?\b",
+    r"\bsedes?\b",
+)
 GREETING_PATTERN = (
     r"^(?:(?:hola|buen dia|buenos dias|buenas tardes|buenas noches|buenas)"
     r"(?:[!., ]+(?:buen dia|buenos dias|buenas tardes|buenas noches|buenas))?|"
@@ -71,6 +94,10 @@ def classify_intent(text: str, *, history_text: str = "") -> Intent:
         return "appointment"
     if any(re.search(pattern, normalized) for pattern in DIRECTORY_PATTERNS):
         return "directory"
+    if any(re.search(pattern, normalized) for pattern in ADMIN_POLICY_PATTERNS):
+        return "admin_policy"
+    if any(re.search(pattern, normalized) for pattern in LOCATION_PATTERNS):
+        return "location"
     if re.search(r"\bturnos?\b", normalized) and re.search(
         r"\b(?:quiero|quisiera|gustaria|gestion|pedir|sacar|reservar|agendar|con)\b",
         normalized,
