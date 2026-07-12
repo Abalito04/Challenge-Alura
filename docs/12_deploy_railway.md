@@ -59,7 +59,7 @@ Crear un volumen en Railway y montarlo en:
 Esto conserva:
 
 - índice Chroma: `data/chroma/`;
-- historial de chat: `data/chat_history.json`;
+- historial de chat separado por sesión: `data/chat_sessions/`;
 - solicitudes pendientes: `data/turnos_solicitudes.csv`.
 
 Railway documenta que los volúmenes permiten persistir datos de servicios y que, si una app escribe en una ruta relativa como `./data`, el volumen debe montarse incluyendo la ruta de la aplicación, por ejemplo `/app/data`. También indica que los volúmenes se montan al iniciar el contenedor, no durante el build ni durante pre-deploy; por eso la ingesta se hace dentro del comando de inicio.

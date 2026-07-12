@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import uuid
 from pathlib import Path
 
 import streamlit as st
@@ -342,7 +343,17 @@ st.markdown(
 
 
 RUNTIME_VERSION = "quick-responses-v4"
-CHAT_HISTORY_PATH = Path("data/chat_history.json")
+CHAT_HISTORY_DIR = Path("data/chat_sessions")
+
+
+def get_chat_session_id() -> str:
+    if "chat_session_id" not in st.session_state:
+        st.session_state.chat_session_id = uuid.uuid4().hex
+    return st.session_state.chat_session_id
+
+
+def get_chat_history_path() -> Path:
+    return CHAT_HISTORY_DIR / f"{get_chat_session_id()}.json"
 
 
 def handle_prompt(prompt: str, graph) -> None:
@@ -351,7 +362,7 @@ def handle_prompt(prompt: str, graph) -> None:
         for message in st.session_state.messages[-8:]
     )
     st.session_state.messages.append({"role": "user", "content": prompt})
-    save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
+    save_chat_history(get_chat_history_path(), st.session_state.messages)
     with st.spinner("LangGraph está consultando el corpus..."):
         try:
             st.session_state.pop("provider_error", None)
@@ -379,7 +390,7 @@ def handle_prompt(prompt: str, graph) -> None:
                         "id": len(st.session_state.messages),
                     }
                 )
-                save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
+                save_chat_history(get_chat_history_path(), st.session_state.messages)
                 st.session_state.provider_error = str(exc)
                 st.rerun()
                 return
@@ -395,7 +406,7 @@ def handle_prompt(prompt: str, graph) -> None:
             "id": len(st.session_state.messages),
         }
     )
-    save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
+    save_chat_history(get_chat_history_path(), st.session_state.messages)
     st.rerun()
 
 
@@ -557,7 +568,7 @@ def render_assistant() -> None:
             with st.expander("Último error técnico del proveedor"):
                 st.code(st.session_state.provider_error)
         if "messages" not in st.session_state:
-            st.session_state.messages = load_chat_history(CHAT_HISTORY_PATH)
+            st.session_state.messages = load_chat_history(get_chat_history_path())
         with st.form("top_chat_composer", clear_on_submit=True, border=False):
             input_col, send_col = st.columns([7, 1], vertical_alignment="center")
             with input_col:
@@ -727,13 +738,13 @@ with st.sidebar:
     if st.button("Nueva conversación", use_container_width=True):
         st.session_state.messages = []
         st.session_state.pop("last_result", None)
-        clear_chat_history(CHAT_HISTORY_PATH)
+        clear_chat_history(get_chat_history_path())
         st.rerun()
-    if st.button("Eliminar todo el chat", use_container_width=True):
+    if st.button("Eliminar mi chat", use_container_width=True):
         st.session_state.messages = []
         st.session_state.pop("last_result", None)
         st.session_state.pop("provider_error", None)
-        clear_chat_history(CHAT_HISTORY_PATH)
+        clear_chat_history(get_chat_history_path())
         st.success("Chat eliminado.")
         st.rerun()
 

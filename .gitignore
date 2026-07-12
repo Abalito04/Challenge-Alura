@@ -16,6 +16,7 @@ venv/
 data/chroma/
 data/turnos_solicitudes.csv
 data/chat_history.json
+data/chat_sessions/
 data/*.tmp
 tmp/
 
@@ -27,4 +28,3 @@ Thumbs.db
 
 PLAN_CHALLENGE_ALURA_AGENTE.md
 docs/streamlit_ui_concept.png
-
