@@ -25,12 +25,32 @@ def test_secret_is_not_required_for_offline_configuration() -> None:
 
 def test_provider_keys_and_vector_collections_are_resolved_independently() -> None:
     settings = Settings(
-        embeddings_provider="cohere",
-        embeddings_model="embed-v4.0",
-        cohere_api_key="cohere-test-secret",
+        embeddings_provider="openai",
+        embeddings_model="text-embedding-3-small",
+        openai_api_key="openai-test-secret",
     )
-    assert settings.api_key_for("cohere") == "cohere-test-secret"
-    assert settings.vector_collection_name.endswith("cohere_embed_v4_0")
+    assert settings.api_key_for("openai") == "openai-test-secret"
+    assert settings.vector_collection_name.endswith("openai_text_embedding_3_small")
+
+
+def test_cohere_is_the_default_provider(monkeypatch) -> None:
+    for name in (
+        "LLM_PROVIDER",
+        "LLM_MODEL",
+        "LLM_FALLBACK_PROVIDER",
+        "LLM_FALLBACK_MODEL",
+        "EMBEDDINGS_PROVIDER",
+        "EMBEDDINGS_MODEL",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    settings = Settings(_env_file=None)
+    assert settings.llm_provider == "cohere"
+    assert settings.llm_model == "command-a-03-2025"
+    assert settings.llm_fallback_provider == "gemini"
+    assert settings.llm_fallback_model == "gemini-2.5-flash"
+    assert settings.embeddings_provider == "cohere"
+    assert settings.embeddings_model == "embed-v4.0"
+    assert settings.vector_collection_name == "medinova_documents"
 
 
 def test_google_api_key_is_accepted_as_gemini_alias(monkeypatch) -> None:

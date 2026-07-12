@@ -16,12 +16,12 @@ class Settings(BaseSettings):
         populate_by_name=True,
     )
 
-    llm_provider: str = "gemini"
-    llm_model: str = "gemini-3.5-flash"
+    llm_provider: str = "cohere"
+    llm_model: str = "command-a-03-2025"
     llm_fallback_provider: str | None = "gemini"
-    llm_fallback_model: str = "gemini-2.5-flash"
-    embeddings_provider: str = "gemini"
-    embeddings_model: str = "gemini-embedding-001"
+    llm_fallback_model: str | None = "gemini-2.5-flash"
+    embeddings_provider: str = "cohere"
+    embeddings_model: str = "embed-v4.0"
     gemini_api_key: str | None = Field(
         default=None,
         repr=False,
@@ -84,8 +84,8 @@ class Settings(BaseSettings):
     @property
     def vector_collection_name(self) -> str:
         if (
-            self.embeddings_provider.lower() == "gemini"
-            and self.embeddings_model.lower() == "gemini-embedding-001"
+            self.embeddings_provider.lower() == "cohere"
+            and self.embeddings_model.lower() == "embed-v4.0"
         ):
             return self.chroma_collection
         identity = f"{self.embeddings_provider}_{self.embeddings_model}".lower()

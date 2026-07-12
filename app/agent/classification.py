@@ -4,8 +4,14 @@ import re
 import unicodedata
 from typing import Literal
 
-Intent = Literal["documental", "clinical", "appointment", "greeting", "invalid"]
+Intent = Literal["documental", "clinical", "appointment", "directory", "greeting", "invalid"]
 
+INVALID_PATTERNS = (
+    r"\bboca\b",
+    r"\briver\b",
+    r"\bfutbol\b",
+    r"\bpartido\b",
+)
 CLINICAL_PATTERNS = (
     r"\bdiagnostic",
     r"\bmedic(?:amento|acion|ina)",
@@ -17,16 +23,31 @@ CLINICAL_PATTERNS = (
     r"\bresultado.*significa",
 )
 APPOINTMENT_PATTERNS = (
-    r"\bquiero (?:pedir|solicitar|sacar|reservar).{0,20}turno",
-    r"\bsolicitar (?:un )?turno",
-    r"\bagendar (?:un )?turno",
-    r"\bnecesito (?:un )?turno",
-    r"\b(?:gestionar|gestiono|gestionamos|pedir|sacar|reservar) (?:un )?turno",
-    r"\b(?:podemos|puedo|como puedo) (?:gestionar|pedir|sacar|reservar|agendar) (?:un )?turno",
+    r"\bver turnos?\b",
+    r"\bturnos? con\b",
+    r"\bquiero (?:pedir|solicitar|sacar|reservar).{0,20}turnos?",
+    r"\bsolicitar (?:un )?turnos?",
+    r"\bagendar (?:un )?turnos?",
+    r"\bnecesito (?:un )?turnos?",
+    r"\b(?:gestionar|gestiono|gestionamos|pedir|sacar|reservar) (?:un )?turnos?",
+    r"\b(?:podemos|puedo|como puedo) (?:gestionar|pedir|sacar|reservar|agendar) (?:un )?turnos?",
+)
+DIRECTORY_PATTERNS = (
+    r"\bque especialidades hay\b",
+    r"\bespecialidades\b",
+    r"\b(?:que|cuales?|ver|mostrar|list(?:a|ado)) (?:medicos|doctores|profesionales)(?: hay| disponibles)?\b",
+    r"\b(?:medicos|doctores|profesionales) (?:hay|disponibles|atienden)\b",
+    r"\bmedicos disponibles\b",
+    r"\bprofesionales disponibles\b",
+    r"\bprofesionales hay\b",
+    r"\bcartilla\b",
+    r"\bservicios disponibles\b",
+    r"\bdirectorio\b",
 )
 GREETING_PATTERN = (
-    r"^(?:hola|buen dia|buenas tardes|buenas noches|buenas|gracias|muchas gracias|"
-    r"chau|adios|hasta luego)[!., ]*$"
+    r"^(?:(?:hola|buen dia|buenos dias|buenas tardes|buenas noches|buenas)"
+    r"(?:[!., ]+(?:buen dia|buenos dias|buenas tardes|buenas noches|buenas))?|"
+    r"gracias|muchas gracias|chau|adios|hasta luego)[!., ]*$"
 )
 
 
@@ -42,11 +63,15 @@ def classify_intent(text: str, *, history_text: str = "") -> Intent:
         return "invalid"
     if re.fullmatch(GREETING_PATTERN, normalized):
         return "greeting"
+    if any(re.search(pattern, normalized) for pattern in INVALID_PATTERNS):
+        return "invalid"
     if any(re.search(pattern, normalized) for pattern in CLINICAL_PATTERNS):
         return "clinical"
     if any(re.search(pattern, normalized) for pattern in APPOINTMENT_PATTERNS):
         return "appointment"
-    if re.search(r"\bturno\b", normalized) and re.search(
+    if any(re.search(pattern, normalized) for pattern in DIRECTORY_PATTERNS):
+        return "directory"
+    if re.search(r"\bturnos?\b", normalized) and re.search(
         r"\b(?:quiero|quisiera|gustaria|gestion|pedir|sacar|reservar|agendar|con)\b",
         normalized,
     ):

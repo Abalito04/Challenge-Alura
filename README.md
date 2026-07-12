@@ -7,8 +7,8 @@ Asistente administrativo ficticio para demostrar RAG, LangChain, LangGraph y des
 - Planificación y diagramas completos en [`docs/`](docs/).
 - Seis documentos PDF ficticios y 30 páginas en [`source_documents/`](source_documents/).
 - Pipeline RAG, citas, guardrails y flujo LangGraph implementados.
-- Gemini, OpenAI y Cohere disponibles por configuración; Gemini sigue activo por defecto.
-- Interfaz Streamlit, turnos y deploy OCI continúan como etapas posteriores.
+- Cohere, Gemini y OpenAI disponibles por configuración; Cohere queda activo por defecto para LLM y embeddings, con Gemini como fallback del LLM.
+- Interfaz Streamlit implementada con asistente, trazabilidad técnica, carga protegida de PDFs y solicitudes pendientes.
 
 ## Seguridad
 
@@ -31,6 +31,6 @@ Con el entorno virtual activo y el índice creado:
 python -m streamlit run streamlit_app.py
 ```
 
-La interfaz incluye el asistente RAG con citas y trazabilidad LangGraph, el inventario PDF y una demostración secundaria de solicitudes pendientes persistidas en CSV. Usá únicamente datos ficticios.
+La interfaz incluye el asistente RAG con citas y trazabilidad LangGraph, el inventario PDF, carga protegida de documentos y una demostración secundaria de solicitudes pendientes persistidas en CSV.
 
 La ingesta real requiere la clave del proveedor configurado. Las pruebas usan embeddings determinísticos locales y no consumen APIs. Cada proveedor/modelo de embeddings usa una colección Chroma independiente, por lo que al cambiarlo hay que ejecutar nuevamente `python -m scripts.ingest`.

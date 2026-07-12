@@ -5,7 +5,9 @@ from pathlib import Path
 
 import streamlit as st
 
+from app.agent.classification import classify_intent
 from app.agent.graph import build_agent_graph
+from app.agent.quick_responses import quick_response_for_intent
 from app.appointments import append_request, create_request, load_requests
 from app.chat_history import clear_chat_history, load_chat_history, save_chat_history
 from app.config import get_settings
@@ -40,6 +42,8 @@ def apply_theme(mode: str) -> None:
             "input_bg": "#0b2533",
             "input_shell": "#123647",
             "input_border": "#356579",
+            "uploader_bg": "#0f2c3a",
+            "uploader_text": "#d8edf2",
             "shadow": "0 18px 45px rgba(0,0,0,.34)",
         }
     else:
@@ -58,6 +62,8 @@ def apply_theme(mode: str) -> None:
             "input_bg": "#ffffff",
             "input_shell": "#f7fbfc",
             "input_border": "#b8d0dc",
+            "uploader_bg": "#f4f8fa",
+            "uploader_text": "#31536f",
             "shadow": "0 16px 38px rgba(11,44,80,.14)",
         }
     st.markdown(
@@ -78,6 +84,8 @@ def apply_theme(mode: str) -> None:
             --input-bg:{palette["input_bg"]};
             --input-shell:{palette["input_shell"]};
             --input-border:{palette["input_border"]};
+            --uploader-bg:{palette["uploader_bg"]};
+            --uploader-text:{palette["uploader_text"]};
             --shadow:{palette["shadow"]};
         }}
         </style>
@@ -225,13 +233,37 @@ st.markdown(
         stroke:#fff !important;
         stroke-width:2.4 !important;
     }
+    [data-testid="stFileUploader"] section {
+        background:var(--uploader-bg) !important;
+        border:1px solid var(--input-border) !important;
+        border-radius:12px !important;
+    }
+    [data-testid="stFileUploader"] section * {
+        color:var(--uploader-text) !important;
+    }
+    [data-testid="stFileUploader"] button,
+    [data-testid="stFileUploader"] button[kind="secondary"] {
+        background:var(--teal) !important;
+        border-color:var(--teal) !important;
+        color:#fff !important;
+    }
+    [data-testid="stFileUploader"] button *,
+    [data-testid="stFileUploader"] button p,
+    [data-testid="stFileUploader"] button span,
+    [data-testid="stFileUploader"] button svg,
+    [data-testid="stFileUploader"] button svg path {
+        color:#fff !important;
+        fill:#fff !important;
+        stroke:#fff !important;
+        opacity:1 !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 
-RUNTIME_VERSION = "protected-upload-v1"
+RUNTIME_VERSION = "quick-responses-v2"
 CHAT_HISTORY_PATH = Path("data/chat_history.json")
 
 
@@ -253,6 +285,17 @@ def unique_document_path(directory: Path, filename: str) -> Path:
         if not numbered.exists():
             return numbered
         index += 1
+
+
+def local_simple_answer(prompt: str) -> dict | None:
+    intent = classify_intent(prompt)
+    response = quick_response_for_intent(intent, question=prompt)
+    if response is None:
+        return None
+    result = response.as_state()
+    result["intent"] = intent
+    result["documents"] = ()
+    return result
 
 
 @st.cache_resource(show_spinner="Preparando el agente RAG...")
@@ -300,6 +343,8 @@ def trace_for(result: dict) -> list[str]:
         steps.append("Aplicar guardrail clínico")
     elif intent == "appointment":
         steps.append("Derivar a solicitudes")
+    elif intent == "directory":
+        steps.append("Responder directorio institucional")
     elif intent == "greeting":
         steps.append("Responder conversación breve")
     else:
@@ -354,12 +399,11 @@ def render_assistant() -> None:
             ```env
             LLM_PROVIDER=cohere
             LLM_MODEL=command-a-03-2025
-            LLM_FALLBACK_PROVIDER=openai
-            LLM_FALLBACK_MODEL=gpt-5.4-mini
-            EMBEDDINGS_PROVIDER=gemini
-            EMBEDDINGS_MODEL=gemini-embedding-001
+            LLM_FALLBACK_PROVIDER=gemini
+            LLM_FALLBACK_MODEL=gemini-2.5-flash
+            EMBEDDINGS_PROVIDER=cohere
+            EMBEDDINGS_MODEL=embed-v4.0
             COHERE_API_KEY=tu_key_de_cohere
-            OPENAI_API_KEY=tu_key_de_openai
             GEMINI_API_KEY=tu_key_de_gemini
             DOCUMENT_UPLOAD_PASSWORD=la_clave_que_quieras
             ```
@@ -373,6 +417,9 @@ def render_assistant() -> None:
             '<p class="provider-line">Respuestas institucionales basadas en los PDF de Medinova, con fuentes verificables.</p>',
             unsafe_allow_html=True,
         )
+        if st.session_state.get("provider_error"):
+            with st.expander("Último error técnico del proveedor"):
+                st.code(st.session_state.provider_error)
         if "messages" not in st.session_state:
             st.session_state.messages = load_chat_history(CHAT_HISTORY_PATH)
         for message in st.session_state.messages:
@@ -406,15 +453,37 @@ def render_assistant() -> None:
             save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
             with st.spinner("LangGraph está consultando el corpus..."):
                 try:
+                    st.session_state.pop("provider_error", None)
                     result = graph.invoke(
                         {"question": prompt, "conversation": conversation}
                     )
-                except Exception:
-                    st.error(
-                        "El proveedor de IA no pudo completar la consulta. "
-                        "Reintentá en unos segundos o revisá la cuota configurada."
-                    )
-                    return
+                except Exception as exc:
+                    simple_result = local_simple_answer(prompt)
+                    if simple_result:
+                        result = simple_result
+                    else:
+                        st.session_state.last_result = {
+                            "intent": "invalid",
+                            "documents": (),
+                            "answer": "No se pudo completar la consulta.",
+                            "citations": (),
+                        }
+                        st.session_state.messages.append(
+                            {
+                                "role": "assistant",
+                                "content": (
+                                    "No pude completar la consulta con el proveedor de IA en este momento. "
+                                    "Probá nuevamente en unos segundos o revisá la cuota/API key configurada."
+                                ),
+                                "citations": (),
+                                "intent": "invalid",
+                                "id": len(st.session_state.messages),
+                            }
+                        )
+                        save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
+                        st.session_state.provider_error = str(exc)
+                        st.rerun()
+                        return
             st.session_state.last_result = result
             st.session_state.messages.append(
                 {
@@ -550,6 +619,13 @@ with st.sidebar:
         st.session_state.messages = []
         st.session_state.pop("last_result", None)
         clear_chat_history(CHAT_HISTORY_PATH)
+        st.rerun()
+    if st.button("Eliminar todo el chat", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.pop("last_result", None)
+        st.session_state.pop("provider_error", None)
+        clear_chat_history(CHAT_HISTORY_PATH)
+        st.success("Chat eliminado.")
         st.rerun()
 
 if page == "Asistente":

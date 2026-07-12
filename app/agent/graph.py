@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from typing import Any, Literal, TypedDict
 
 from langchain_core.documents import Document
@@ -8,6 +7,7 @@ from langchain_core.runnables import Runnable
 from langgraph.graph import END, START, StateGraph
 
 from app.agent.classification import Intent, classify_intent
+from app.agent.quick_responses import quick_response_for_intent
 from app.rag.answering import generate_grounded_answer
 from app.rag.retrieval import retrieve_context
 
@@ -68,17 +68,8 @@ def build_agent_graph(
             )
         }
 
-    def route_intent(
-        state: AgentState,
-    ) -> Literal["retrieve", "clinical", "appointment", "greeting", "invalid"]:
-        mapping = {
-            "documental": "retrieve",
-            "clinical": "clinical",
-            "appointment": "appointment",
-            "greeting": "greeting",
-            "invalid": "invalid",
-        }
-        return mapping[state["intent"]]
+    def route_intent(state: AgentState) -> Literal["retrieve", "quick_response"]:
+        return "retrieve" if state["intent"] == "documental" else "quick_response"
 
     def retrieve_node(state: AgentState) -> AgentState:
         result = retrieve_context(
@@ -111,54 +102,18 @@ def build_agent_graph(
             ),
         }
 
-    def clinical_node(_: AgentState) -> AgentState:
-        return {
-            "answer": (
-                "No puedo brindar diagnósticos, interpretar síntomas o resultados, ni indicar "
-                "medicación o tratamientos. Consultá con un profesional de salud o con el canal "
-                "correspondiente de la clínica."
-            ),
-            "citations": (),
-        }
-
-    def appointment_node(state: AgentState) -> AgentState:
-        context = "\n".join(
-            item.get("content", "") for item in state.get("conversation", ())[-8:]
+    def quick_response_node(state: AgentState) -> AgentState:
+        response = quick_response_for_intent(
+            state["intent"],
+            question=state.get("question", ""),
+            conversation=state.get("conversation", ()),
         )
-        professionals = re.findall(
-            r"\b(?:Dra?\.)\s+[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ]+){1,2}",
-            context,
-        )
-        professional = professionals[-1] if professionals else ""
-        specialty = "Cardiología" if re.search(r"cardiolog", context, re.IGNORECASE) else ""
-        detail = ""
-        if professional:
-            detail = f" para {professional}"
-        elif specialty:
-            detail = f" para {specialty}"
-        return {
-            "answer": (
-                f"Sí. Puedo derivarte al formulario de la sección Solicitudes{detail}. "
-                "Completá los datos de contacto y preferencia horaria. La solicitud quedará "
-                "registrada como pendiente; no confirma una reserva ni asigna automáticamente un turno."
-            ),
-            "citations": (),
-            "appointment_professional": professional,
-            "appointment_specialty": specialty,
-        }
-
-    def greeting_node(_: AgentState) -> AgentState:
-        return {
-            "answer": (
-                "¡Hola! Soy Medinova AI Agent. Puedo ayudarte con información institucional, "
-                "especialistas, sedes, horarios, coberturas y políticas disponibles en los "
-                "documentos de la clínica. ¿Qué necesitás consultar?"
-            ),
-            "citations": (),
-        }
-
-    def invalid_node(_: AgentState) -> AgentState:
-        return {"answer": "Ingresá una consulta válida para poder ayudarte.", "citations": ()}
+        if response is None:
+            return {
+                "answer": "Ingresá una consulta válida para poder ayudarte.",
+                "citations": (),
+            }
+        return response.as_state()
 
     def insufficient_node(_: AgentState) -> AgentState:
         return {
@@ -171,10 +126,7 @@ def build_agent_graph(
     builder.add_node("contextualize", contextualize_node)
     builder.add_node("retrieve", retrieve_node)
     builder.add_node("generate", generate_node)
-    builder.add_node("clinical", clinical_node)
-    builder.add_node("appointment", appointment_node)
-    builder.add_node("greeting", greeting_node)
-    builder.add_node("invalid", invalid_node)
+    builder.add_node("quick_response", quick_response_node)
     builder.add_node("insufficient", insufficient_node)
     builder.add_edge(START, "classify")
     builder.add_conditional_edges(
@@ -182,20 +134,14 @@ def build_agent_graph(
         route_intent,
         {
             "retrieve": "contextualize",
-            "clinical": "clinical",
-            "appointment": "appointment",
-            "greeting": "greeting",
-            "invalid": "invalid",
+            "quick_response": "quick_response",
         },
     )
     builder.add_edge("contextualize", "retrieve")
     builder.add_conditional_edges("retrieve", route_evidence)
     for terminal in (
         "generate",
-        "clinical",
-        "appointment",
-        "greeting",
-        "invalid",
+        "quick_response",
         "insufficient",
     ):
         builder.add_edge(terminal, END)
