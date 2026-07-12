@@ -1,5 +1,7 @@
 # Medinova AI Agent
 
+https://medinova.up.railway.app/
+
 Asistente administrativo para demostrar RAG, LangChain, LangGraph y despliegue en Railway. El corpus está compuesto por documentos PDF de Clínica Medinova creados para la demo y no contiene datos reales.
 
 ## Estado actual
