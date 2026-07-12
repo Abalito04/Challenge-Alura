@@ -24,3 +24,7 @@ tmp/
 .idea/
 .DS_Store
 Thumbs.db
+
+PLAN_CHALLENGE_ALURA_AGENTE.md
+docs/streamlit_ui_concept.png
+

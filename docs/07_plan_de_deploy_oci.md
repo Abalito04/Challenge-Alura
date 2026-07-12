@@ -2,7 +2,9 @@
 
 ## Estado y objetivo
 
-Plan conceptual y ruta de aprendizaje. El usuario todavía no conoce OCI, por lo que la modalidad no se fijará hasta completar una práctica guiada. El objetivo será mostrar una aplicación pública, reiniciable y observable sin convertir infraestructura avanzada en el centro del challenge.
+Plan conceptual y ruta de aprendizaje. Este camino queda **pospuesto** porque OCI pidió datos de tarjeta/crédito para avanzar y el despliegue operativo del challenge se migra a Railway. El objetivo principal sigue siendo mostrar una aplicación pública, reiniciable y observable sin convertir infraestructura avanzada en el centro del challenge.
+
+El plan activo de despliegue está documentado en [`12_deploy_railway.md`](12_deploy_railway.md).
 
 ## Alternativas
 
