@@ -28,43 +28,43 @@ st.set_page_config(
 def apply_theme(mode: str) -> None:
     if mode == "Oscuro":
         palette = {
-            "app_bg": "#071923",
-            "surface": "#0e2431",
-            "surface_soft": "#132f3f",
-            "text": "#e8f3f6",
-            "muted": "#a9c3cf",
-            "line": "#244655",
-            "chat_bg": "#0d2330",
-            "citation": "#c3dbe4",
-            "step": "#d5eef3",
-            "teal": "#22b8ac",
-            "teal_hover": "#15998f",
-            "input_bg": "#0b2533",
-            "input_shell": "#123647",
-            "input_border": "#356579",
-            "uploader_bg": "#0f2c3a",
-            "uploader_text": "#d8edf2",
-            "shadow": "0 18px 45px rgba(0,0,0,.34)",
+            "app_bg": "#111816",
+            "surface": "#17211e",
+            "surface_soft": "#1f2d29",
+            "text": "#eef2ed",
+            "muted": "#aebbb4",
+            "line": "#34443f",
+            "chat_bg": "#182520",
+            "citation": "#cbd8d0",
+            "step": "#d9e4de",
+            "teal": "#8fb7a5",
+            "teal_hover": "#7aa593",
+            "input_bg": "#121d1a",
+            "input_shell": "#1d2a26",
+            "input_border": "#4a6259",
+            "uploader_bg": "#1c2925",
+            "uploader_text": "#d7e1dc",
+            "shadow": "0 18px 45px rgba(0,0,0,.32)",
         }
     else:
         palette = {
-            "app_bg": "#ffffff",
-            "surface": "#ffffff",
-            "surface_soft": "#f4f8fa",
-            "text": "#0b2c50",
-            "muted": "#52697e",
-            "line": "#dbe5ec",
-            "chat_bg": "#fbfdfe",
-            "citation": "#31536f",
-            "step": "#1f4669",
-            "teal": "#078b83",
-            "teal_hover": "#067a73",
-            "input_bg": "#ffffff",
-            "input_shell": "#f7fbfc",
-            "input_border": "#b8d0dc",
-            "uploader_bg": "#f4f8fa",
-            "uploader_text": "#31536f",
-            "shadow": "0 16px 38px rgba(11,44,80,.14)",
+            "app_bg": "#faf8f3",
+            "surface": "#fffdf8",
+            "surface_soft": "#f0f4ee",
+            "text": "#26352f",
+            "muted": "#6f7f76",
+            "line": "#d9dfd4",
+            "chat_bg": "#fffdf8",
+            "citation": "#52665c",
+            "step": "#40554b",
+            "teal": "#6f9f8b",
+            "teal_hover": "#5e8d7a",
+            "input_bg": "#fffefa",
+            "input_shell": "#f1f5ef",
+            "input_border": "#c5d0c4",
+            "uploader_bg": "#f3f6f0",
+            "uploader_text": "#52665c",
+            "shadow": "0 16px 38px rgba(60,76,67,.12)",
         }
     st.markdown(
         f"""
@@ -107,7 +107,7 @@ st.markdown(
     .sidebar-brand {
         border:1px solid var(--line);
         border-radius:18px;
-        background:linear-gradient(180deg, var(--surface-soft), var(--surface));
+        background:linear-gradient(180deg, var(--surface), var(--surface-soft));
         padding:1rem 1rem .95rem;
         margin:.25rem 0 1rem;
     }
@@ -279,7 +279,7 @@ st.markdown(
         height:48px !important;
         min-width:48px !important;
         margin-left:.55rem !important;
-        box-shadow:0 10px 22px rgba(7,139,131,.28);
+        box-shadow:0 10px 22px rgba(80,112,96,.22);
     }
     [data-testid="stChatInput"] button:hover {
         background:var(--teal-hover) !important;
@@ -292,6 +292,24 @@ st.markdown(
         fill:none !important;
         stroke:#fff !important;
         stroke-width:2.4 !important;
+    }
+    [data-testid="stForm"] {
+        border:1px solid var(--input-border) !important;
+        border-radius:22px !important;
+        background:var(--input-shell) !important;
+        box-shadow:var(--shadow);
+        padding:.8rem .9rem !important;
+    }
+    [data-testid="InputInstructions"] {
+        display:none !important;
+    }
+    .chat-history-label {
+        color:var(--muted);
+        font-size:.78rem;
+        font-weight:700;
+        letter-spacing:.08em;
+        text-transform:uppercase;
+        margin:.45rem 0 .8rem;
     }
     [data-testid="stFileUploader"] section {
         background:var(--uploader-bg) !important;
@@ -325,6 +343,60 @@ st.markdown(
 
 RUNTIME_VERSION = "quick-responses-v4"
 CHAT_HISTORY_PATH = Path("data/chat_history.json")
+
+
+def handle_prompt(prompt: str, graph) -> None:
+    conversation = tuple(
+        {"role": message["role"], "content": message["content"]}
+        for message in st.session_state.messages[-8:]
+    )
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
+    with st.spinner("LangGraph está consultando el corpus..."):
+        try:
+            st.session_state.pop("provider_error", None)
+            result = graph.invoke({"question": prompt, "conversation": conversation})
+        except Exception as exc:
+            simple_result = local_simple_answer(prompt)
+            if simple_result:
+                result = simple_result
+            else:
+                st.session_state.last_result = {
+                    "intent": "invalid",
+                    "documents": (),
+                    "answer": "No se pudo completar la consulta.",
+                    "citations": (),
+                }
+                st.session_state.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": (
+                            "No pude completar la consulta con el proveedor de IA en este momento. "
+                            "Probá nuevamente en unos segundos o revisá la cuota/API key configurada."
+                        ),
+                        "citations": (),
+                        "intent": "invalid",
+                        "id": len(st.session_state.messages),
+                    }
+                )
+                save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
+                st.session_state.provider_error = str(exc)
+                st.rerun()
+                return
+    st.session_state.last_result = result
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": result["answer"],
+            "citations": result.get("citations", ()),
+            "intent": result.get("intent"),
+            "appointment_professional": result.get("appointment_professional", ""),
+            "appointment_specialty": result.get("appointment_specialty", ""),
+            "id": len(st.session_state.messages),
+        }
+    )
+    save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
+    st.rerun()
 
 
 def safe_pdf_name(filename: str) -> str:
@@ -486,8 +558,26 @@ def render_assistant() -> None:
                 st.code(st.session_state.provider_error)
         if "messages" not in st.session_state:
             st.session_state.messages = load_chat_history(CHAT_HISTORY_PATH)
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
+        with st.form("top_chat_composer", clear_on_submit=True, border=False):
+            input_col, send_col = st.columns([7, 1], vertical_alignment="center")
+            with input_col:
+                prompt = st.text_input(
+                    "Consulta",
+                    placeholder="Escribí tu consulta sobre Medinova",
+                    label_visibility="collapsed",
+                )
+            with send_col:
+                submitted = st.form_submit_button("Enviar", use_container_width=True)
+        if submitted and prompt.strip():
+            handle_prompt(prompt.strip(), graph)
+        if st.session_state.messages:
+            st.markdown(
+                '<div class="chat-history-label">Conversación reciente</div>',
+                unsafe_allow_html=True,
+            )
+        for message in reversed(st.session_state.messages):
+            avatar = "👤" if message["role"] == "user" else "🩺"
+            with st.chat_message(message["role"], avatar=avatar):
                 st.markdown(message["content"])
                 if message.get("citations"):
                     st.markdown("**Fuentes consultadas**")
@@ -507,61 +597,6 @@ def render_assistant() -> None:
                             message.get("appointment_specialty", ""),
                         ),
                     )
-        prompt = st.chat_input("Escribí tu consulta sobre Medinova")
-        if prompt:
-            conversation = tuple(
-                {"role": message["role"], "content": message["content"]}
-                for message in st.session_state.messages[-8:]
-            )
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
-            with st.spinner("LangGraph está consultando el corpus..."):
-                try:
-                    st.session_state.pop("provider_error", None)
-                    result = graph.invoke(
-                        {"question": prompt, "conversation": conversation}
-                    )
-                except Exception as exc:
-                    simple_result = local_simple_answer(prompt)
-                    if simple_result:
-                        result = simple_result
-                    else:
-                        st.session_state.last_result = {
-                            "intent": "invalid",
-                            "documents": (),
-                            "answer": "No se pudo completar la consulta.",
-                            "citations": (),
-                        }
-                        st.session_state.messages.append(
-                            {
-                                "role": "assistant",
-                                "content": (
-                                    "No pude completar la consulta con el proveedor de IA en este momento. "
-                                    "Probá nuevamente en unos segundos o revisá la cuota/API key configurada."
-                                ),
-                                "citations": (),
-                                "intent": "invalid",
-                                "id": len(st.session_state.messages),
-                            }
-                        )
-                        save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
-                        st.session_state.provider_error = str(exc)
-                        st.rerun()
-                        return
-            st.session_state.last_result = result
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": result["answer"],
-                    "citations": result.get("citations", ()),
-                    "intent": result.get("intent"),
-                    "appointment_professional": result.get("appointment_professional", ""),
-                    "appointment_specialty": result.get("appointment_specialty", ""),
-                    "id": len(st.session_state.messages),
-                }
-            )
-            save_chat_history(CHAT_HISTORY_PATH, st.session_state.messages)
-            st.rerun()
     with technical:
         render_trace(settings, st.session_state.get("last_result"))
 
