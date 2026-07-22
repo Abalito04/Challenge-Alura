@@ -14,13 +14,13 @@ Railway reemplaza a OCI como destino de despliegue para la demo pública de Medi
 - **Fallback LLM:** Gemini `gemini-2.5-flash`.
 - **Embeddings:** Cohere `embed-v4.0`.
 
-Railway permite definir configuración junto al código mediante `railway.toml` o `railway.json`; el archivo del repositorio define builder, comando de inicio, healthcheck y política de reinicio. Según la documentación oficial, estas configuraciones de código se combinan con los ajustes del dashboard en cada despliegue.
+Railway permite definir configuración junto al código mediante `railway.toml` o `railway.json`; el archivo del repositorio define builder, comando de inicio y política de reinicio. No se configura healthcheck periódico para no interferir con Serverless/App Sleeping. Según la documentación oficial, estas configuraciones de código se combinan con los ajustes del dashboard en cada despliegue.
 
 ## Archivos agregados
 
 | Archivo | Uso |
 |---|---|
-| `railway.json` | Configuración de build/deploy para Railway. |
+| `railway.json` | Configuración de build/deploy para Railway, sin healthcheck periódico para favorecer Serverless/App Sleeping. |
 | `scripts/railway_start.py` | Prepara carpetas persistentes, genera índice Chroma si falta y arranca Streamlit en el puerto asignado por Railway. |
 | `.dockerignore` | Evita enviar secretos, cachés, entornos virtuales y datos generados al build. |
 
@@ -82,11 +82,20 @@ Railway documenta que los volúmenes permiten persistir datos de servicios y que
 
 ## Validaciones esperadas
 
-- La app responde en `/_stcore/health`.
+- La app carga correctamente desde la URL pública de Railway.
 - En el primer inicio, si no hay índice persistido, el log muestra `Startup ingest completed`.
 - En reinicios posteriores, el log muestra que encontró la colección Chroma existente.
 - Las respuestas documentales muestran fuentes.
 - Las consultas fuera del dominio no fuerzan uso innecesario del LLM.
+
+## Serverless / App Sleeping
+
+Si Serverless está activado, Railway considera inactivo al servicio cuando no detecta tráfico saliente durante más de 10 minutos. Para favorecer ese comportamiento:
+
+- cerrar las pestañas del navegador que tengan la app abierta;
+- evitar monitores externos que consulten la URL;
+- no configurar healthchecks periódicos si el objetivo principal es que el servicio duerma;
+- aceptar que el primer acceso después del sleep puede tardar más por el arranque de Streamlit y la carga del índice.
 
 ## Decisiones pendientes
 
